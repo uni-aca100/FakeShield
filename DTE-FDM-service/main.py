@@ -15,8 +15,8 @@ def startup_model():
         "DTG_path": "./weight/fakeshield-v1-22b/DTG.pth",
     })
 
-@app.post("/mflm/predict")
-def handle_mdlm_req(req: Request): 
+@app.post("/dte-fdm/predict", status_code=200)
+def handle_dte_fdm_req(req: Request): 
     try:
         return DTE_FDM_predict(req.model_dump())
     except Exception as e:

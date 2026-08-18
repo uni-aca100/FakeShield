@@ -15,7 +15,7 @@ def startup_model():
         "version": "./weight/fakeshield-v1-22b/MFLM",
     })
 
-@app.post("/mflm/predict")
+@app.post("/mflm/predict", status_code=200)
 def handle_mdlm_req(req: MFLMRequest): 
     try:
         return predict(req.model_dump())

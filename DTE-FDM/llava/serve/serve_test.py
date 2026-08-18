@@ -140,6 +140,9 @@ def DTE_FDM_init(custom_args: dict):
 def DTE_FDM_predict(req: dict):
     global tokenizer, model, image_processor, context_len, DTG, model_name, args
 
+    if model is None:
+        raise Exception("Model is not initialized. Please call DTE_FDM_init() first.")
+
     conv = conv_templates[args.conv_mode].copy()
     if "mpt" in model_name.lower():
         roles = ('user', 'assistant')

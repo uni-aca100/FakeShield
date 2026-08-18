@@ -36,3 +36,21 @@ services:
               count: all
               capabilities: [ gpu ]
     command: uvicorn MFLM-serve.main:app --host 0.0.0.0 --port 8002 --reload
+
+  gateway-service:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+    container_name: gateway_service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./gateway-service:/workspace/gateway-service
+      - ./playground:/workspace/playground
+    ipc: host
+    command: uvicorn gateway-service.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      dte-fdm-api:
+        condition: service_started
+      mflm-api:
+        condition: service_started
