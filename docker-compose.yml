@@ -1,23 +1,23 @@
 version: '3.8'
 
 services:
-  dte-fdm-api:
-    build:
-      context: ./DTE-FDM-serve
-      dockerfile: Dockerfile
-    container_name: dte_fdm_server
-    ports:
-      - "8001:8001"
-    volumes:
-      - .:/workspace/fakeshield
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]
-    command: uvicorn DTE-FDM-serve.main:app --host 0.0.0.0 --port 8001 --reload
+  # dte-fdm-api:
+  #   build:
+  #     context: ./DTE-FDM-serve
+  #     dockerfile: Dockerfile
+  #   container_name: dte_fdm_server
+  #   ports:
+  #     - "8001:8001"
+  #   volumes:
+  #     - .:/workspace/fakeshield
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [ gpu ]
+  #   command: uvicorn DTE-FDM-serve.main:app --host 0.0.0.0 --port 8001 --reload
 
   mflm-api:
     build:
@@ -50,7 +50,7 @@ services:
     ipc: host
     command: uvicorn gateway-service.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      dte-fdm-api:
-        condition: service_started
       mflm-api:
         condition: service_started
+      # dte-fdm-api:
+      #   condition: service_started
