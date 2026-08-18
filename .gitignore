@@ -1,1 +1,3 @@
 MFLM-service/t.py
+weight/*
+!weight/weight/README.md

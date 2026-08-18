@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # dte-fdm-api:
   #   build:
-  #     context: ./DTE-FDM-serve
+  #     context: ./DTE-FDM-service
   #     dockerfile: Dockerfile
   #   container_name: dte_fdm_server
   #   ports:
@@ -21,7 +21,7 @@ services:
 
   mflm-api:
     build:
-      context: ./MFLM-serve
+      context: ./MFLM-service
       dockerfile: Dockerfile
     container_name: mflm_server
     ports:
