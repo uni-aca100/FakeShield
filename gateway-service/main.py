@@ -5,12 +5,13 @@ import torchvision.utils as tv_utils
 import torchvision.io as tv_io
 from multiprocessing import shared_memory
 import requests
+import json
 
 IMAGE_PATH_TO_TEST="./playground/image/test.png"
 MFLM_SERVICE = "http://mflm-api:8002/mflm/predict" # docker-compose service name and port
 DTE_FDM_SERVICE = "http://dte-fdm-api:8001/dte-fdm/predict"
 MFLM_OUTPUT_PATH = "./playground/MFLM_output"
-
+DTE_FDM_OUTPUT_PATH = "./playground/DTE-FDM_output.jsonl"
 
 app = FastAPI()
 
@@ -18,6 +19,22 @@ class Item(BaseModel):
     shm_name: str
     shape: list[int]
     dtype: str
+
+def mock_dte_fdm_output():
+    # Crea i dati per il file mock del DTE-FDM
+    # IMPORTANTE: Evitiamo la frase "has not been tampered with" per forzare l'esecuzione dell'MFLM
+    mock_dte_data = {
+        "image": IMAGE_PATH_TO_TEST,
+        "outputs": "The image has been tampered with. There is a spliced object in the foreground with inconsistent illumination and shadow artifacts."
+    }
+
+    # writhe file .jsonl
+    with open(DTE_FDM_OUTPUT_PATH, "w", encoding="utf-8") as f:
+        f.write(json.dumps(mock_dte_data) + "\n")
+
+    print(f"✅ File mock creato con successo: {DTE_FDM_OUTPUT_PATH}")
+
+
 
 """
     return the mask tensor from the MFLM service given an input image tensor.
@@ -28,12 +45,12 @@ class Item(BaseModel):
 def mllm_inference(img: torch.Tensor) -> torch.Tensor:
     tv_utils.save_image(img, IMAGE_PATH_TO_TEST, normalize=True, value_range=(0, 1))
 
-    #TODO mock the DTE-FDM output for now, since the DTE-FDM service is not yet implemented
+    mock_dte_fdm_output()
 
     try:
         response = requests.post(MFLM_SERVICE, json={
             "image_path": IMAGE_PATH_TO_TEST,
-            "DTE_FDM_output_path": "./playground/DTE-FDM_output.jsonl",
+            "DTE_FDM_output_path": DTE_FDM_OUTPUT_PATH,
             "MFLM_output_path": MFLM_OUTPUT_PATH
         }, headers = {"Content-Type": "application/json"}, timeout=30)
         if response.status_code != 200:
