@@ -22,4 +22,4 @@ RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8002
 
-CMD ["uvicorn", "MFLM-serve.main:app", "--host", "0.0.0.0", "--port", "8002", "--reload"]
+CMD ["uvicorn", "MFLM-service.main:app", "--host", "0.0.0.0", "--port", "8002", "--reload"]
