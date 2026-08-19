@@ -29,7 +29,7 @@ services:
     volumes:
       - .:/workspace/fakeshield
     environment:
-      - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/MFLM
+      - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/MFLM:/workspace/fakeshield/mmcv
     deploy:
       resources:
         reservations:
