@@ -28,6 +28,8 @@ services:
       - "8002:8002"
     volumes:
       - .:/workspace/fakeshield
+    environment:
+      - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/MFLM
     deploy:
       resources:
         reservations:
