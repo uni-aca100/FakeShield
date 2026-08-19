@@ -1,17 +1,23 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import torch
-import torchvision.utils as tv_utils
-import torchvision.io as tv_io
 from multiprocessing import shared_memory
+import os
 import requests
 import json
+import numpy as np
+from PIL import Image
 
-IMAGE_PATH_TO_TEST="./playground/image/test.png"
+IMAGE_PATH_TO_TEST = "./playground/images/test.png"
 MFLM_SERVICE = "http://mflm-api:8002/mflm/predict" # docker-compose service name and port
 DTE_FDM_SERVICE = "http://dte-fdm-api:8001/dte-fdm/predict"
 MFLM_OUTPUT_PATH = "./playground/MFLM_output"
 DTE_FDM_OUTPUT_PATH = "./playground/DTE-FDM_output.jsonl"
+
+
+def ensure_dir_for_file(path: str):
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
 
 app = FastAPI()
 
@@ -28,6 +34,8 @@ def mock_dte_fdm_output():
         "outputs": "The image has been tampered with. There is a spliced object in the foreground with inconsistent illumination and shadow artifacts."
     }
 
+    ensure_dir_for_file(DTE_FDM_OUTPUT_PATH)
+
     # writhe file .jsonl
     with open(DTE_FDM_OUTPUT_PATH, "w", encoding="utf-8") as f:
         f.write(json.dumps(mock_dte_data) + "\n")
@@ -35,38 +43,34 @@ def mock_dte_fdm_output():
     print(f"✅ File mock creato con successo: {DTE_FDM_OUTPUT_PATH}")
 
 
-
 """
-    return the mask tensor from the MFLM service given an input image tensor.
-    The input image tensor is saved to a temporary file and sent to the MFLM service
-    via a POST request. The MFLM service will save the output mask to a specified path,
-    which is then loaded and returned as a tensor.
+    input batch (N, H, W, C), where N is the batch size.
+    Every image in the batch is expected to be in the range [0, 1] and will be converted to [0, 255] before saving as a PNG file.
+    the returned mask batch will be (N, H, W, 1) in the range [0, 1] as well.
 """
-def mllm_inference(img: torch.Tensor) -> torch.Tensor:
-    tv_utils.save_image(img, IMAGE_PATH_TO_TEST, normalize=True, value_range=(0, 1))
+def inference(img: np.ndarray) -> np.ndarray:
+    # collect the batch of masks from the MFLM service one by one, since the MFLM service is not designed to handle batches of images.
+    mask_batch = np.zeros_like(img[..., 0:1])
+    
+    for i, im in enumerate(img):
+        Image.fromarray((im * 255).astype(np.uint8)).save(IMAGE_PATH_TO_TEST, compress_level=0, format="PNG")
 
-    mock_dte_fdm_output()
+        mock_dte_fdm_output()
 
-    try:
-        response = requests.post(MFLM_SERVICE, json={
-            "image_path": IMAGE_PATH_TO_TEST,
-            "DTE_FDM_output_path": DTE_FDM_OUTPUT_PATH,
-            "MFLM_output_path": MFLM_OUTPUT_PATH
-        }, headers = {"Content-Type": "application/json"}, timeout=30)
-        if response.status_code != 200:
-            raise Exception(f"Failed to get response from MFLM service: {response.text}")
-    except Exception as e:
-        raise e
+        try:
+            response = requests.post(MFLM_SERVICE, json={
+                "image_path": IMAGE_PATH_TO_TEST,
+                "DTE_FDM_output_path": DTE_FDM_OUTPUT_PATH,
+                "MFLM_output_path": MFLM_OUTPUT_PATH
+            }, headers = {"Content-Type": "application/json"}, timeout=30)
+            if response.status_code != 200:
+                raise Exception(f"Failed to get response from MFLM service: {response.text}")
+        except Exception as e:
+            raise e
 
-    # load the output image from the MFLM service output path and convert it to a tensor
-    output_img_path = f"{MFLM_OUTPUT_PATH}/test.png"
-    try:
-        # convert to 0-1 range tensor
-        output_tensor = tv_io.read_image(output_img_path).float() / 255.0
-    except Exception as e:
-        raise Exception(f"Failed to load output tensor from {output_img_path}: {str(e)}")
+        mask_batch[i] = np.array(Image.open(f"{MFLM_OUTPUT_PATH}/test.png").convert("RGB"))[:, :, :1].astype(im.dtype) / 255.0
 
-    return output_tensor 
+    return mask_batch
 
 @app.post("/pred/", status_code=200)
 def predict(item: Item):
@@ -77,51 +81,32 @@ def predict(item: Item):
     except FileNotFoundError:
         return {"status": "error", "message": "Shared memory buffer not initialized by client yet."}
 
-    dtype = eval(item.dtype)
-
-    element_size = torch.tensor([], dtype=dtype).element_size()
-    num_elements = 1
-    for dim in item.shape:
-        num_elements *= dim
-    required_bytes = num_elements * element_size
-
-    buffer_slice_in = inputOutput_shm.buf[:required_bytes]
-
-    in_tensor = torch.frombuffer(
-        buffer_slice_in,
-        dtype=dtype
-    ).reshape(item.shape)
-
-    buffer_slice_in.release()
+    # Create a numpy array view of the shared memory buffer
+    img_batch = np.ndarray(shape=item.shape, dtype=item.dtype, buffer=inputOutput_shm.buf)
 
     try:
-        mask = mllm_inference(in_tensor)
-        print(f"Processato tensor con shape {in_tensor.shape} and output mask shape {mask.shape}")
+        mask_batch = inference(img_batch)
+        print(f"Processato image batch and output mask shape {mask_batch.shape}")
     except Exception as e:
+        inputOutput_shm.close()
         return {"status": "error", "message": str(e)}
 
-    output_required_bytes = mask.numel() * mask.element_size()
-    if output_required_bytes > inputOutput_shm.size:
+    
+    if mask_batch.nbytes > inputOutput_shm.size:
+        inputOutput_shm.close()
         return {"status": "error", "message": "Output mask size exceeds shared memory size."}
 
-    buffer_slice_out = inputOutput_shm.buf[:output_required_bytes]
-
-    # Copia la maschera nella shared memory
-    mask_tensor_view = torch.frombuffer(
-        buffer_slice_out,
-        dtype=mask.dtype
-    ).reshape(mask.shape)
-    mask_tensor_view.copy_(mask)
-
-    # close the shared memory segment after use
-    del mask_tensor_view 
-    buffer_slice_out.release()
+    # Create a numpy array view of the shared memory buffer for the output mask and copy the output mask to it
+    shm_slice_out = np.ndarray(shape=mask_batch.shape, dtype=mask_batch.dtype, buffer=inputOutput_shm.buf)
+    shm_slice_out[:] = mask_batch[:]
+    
+    del shm_slice_out
     inputOutput_shm.close()
 
     # Il server risponde solo dopo aver terminato l'uso del tensor.
     # Questo garantisce che il client non sovrascriva la memoria mentre il server sta leggendo.
     return {
-        "shape": list(mask.shape),
-        "dtype": str(mask.dtype),
+        "shape": list(mask_batch.shape),
+        "dtype": str(mask_batch.dtype),
         "status": "success"
     }
