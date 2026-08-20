@@ -69,12 +69,7 @@ def initialize_model(args, tokenizer):
                   ["seg_token_idx", "bbox_token_idx", "eop_token_idx", "bop_token_idx"]}
 
     model = GLaMMForCausalLM.from_pretrained(
-        args.version,
-        torch_dtype=torch.bfloat16,
-        low_cpu_mem_usage=True,
-        device_map="auto",                       # load to GPU
-        offload_folder="./offload_cache",        # to disk in case not enough VRAM/RAM
-        **model_args)
+        args.version, torch_dtype=torch.bfloat16, low_cpu_mem_usage=True, **model_args)
     print('\033[92m' + "---- Initialized model from: {} ----".format(args.version) + '\033[0m')
 
     # Configure model tokens
