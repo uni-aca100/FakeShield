@@ -41,6 +41,7 @@ def mock_dte_fdm_output():
         f.write(json.dumps(mock_dte_data) + "\n")
 
     print(f"✅ File mock creato con successo: {DTE_FDM_OUTPUT_PATH}")
+    return True # indicate if the image has been tampered with or not
 
 
 """
@@ -51,11 +52,12 @@ def mock_dte_fdm_output():
 def inference(img: np.ndarray) -> np.ndarray:
     # collect the batch of masks from the MFLM service one by one, since the MFLM service is not designed to handle batches of images.
     mask_batch = np.zeros_like(img[..., 0:1])
+    labels = []
     
     for i, im in enumerate(img):
         Image.fromarray((im * 255).astype(np.uint8)).save(IMAGE_PATH_TO_TEST, compress_level=0, format="PNG")
 
-        mock_dte_fdm_output()
+        labels.append(1 if mock_dte_fdm_output() else 0)
 
         try:
             response = requests.post(MFLM_SERVICE, json={
@@ -70,7 +72,7 @@ def inference(img: np.ndarray) -> np.ndarray:
 
         mask_batch[i] = np.array(Image.open(f"{MFLM_OUTPUT_PATH}/test.png").convert("RGB"))[:, :, :1].astype(im.dtype) / 255.0
 
-    return mask_batch
+    return mask_batch, labels
 
 @app.post("/pred/", status_code=200)
 def predict(item: Item):
@@ -85,7 +87,7 @@ def predict(item: Item):
     img_batch = np.ndarray(shape=item.shape, dtype=item.dtype, buffer=inputOutput_shm.buf)
 
     try:
-        mask_batch = inference(img_batch)
+        mask_batch, labels = inference(img_batch)
         print(f"Processato image batch and output mask shape {mask_batch.shape}")
     except Exception as e:
         inputOutput_shm.close()
@@ -108,5 +110,6 @@ def predict(item: Item):
     return {
         "shape": list(mask_batch.shape),
         "dtype": str(mask_batch.dtype),
+        "labels": labels,
         "status": "success"
     }
