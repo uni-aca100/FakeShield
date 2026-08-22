@@ -23,8 +23,9 @@ app = FastAPI()
 
 class Item(BaseModel):
     shm_name: str
-    shape: list[int]
-    dtype: str
+    img_shape: list[int]
+    img_dtype: str
+    mask_dtype: str
 
 def mock_dte_fdm_output():
     # Crea i dati per il file mock del DTE-FDM
@@ -46,16 +47,16 @@ def mock_dte_fdm_output():
 
 """
     input batch (N, H, W, C), where N is the batch size.
-    Every image in the batch is expected to be in the range [0, 1] and will be converted to [0, 255] before saving as a PNG file.
+    Every image in the batch is expected to be in the range [0, 255] saved as a PNG file.
     the returned mask batch will be (N, H, W, 1) in the range [0, 1] as well.
 """
-def inference(img: np.ndarray) -> np.ndarray:
+def inference(img: np.ndarray, mask_dtype: str) -> np.ndarray:
     # collect the batch of masks from the MFLM service one by one, since the MFLM service is not designed to handle batches of images.
     mask_batch = np.zeros_like(img[..., 0:1])
     labels = []
     
     for i, im in enumerate(img):
-        Image.fromarray((im * 255).astype(np.uint8)).save(IMAGE_PATH_TO_TEST, compress_level=0, format="PNG")
+        Image.fromarray(im.astype(np.uint8)).save(IMAGE_PATH_TO_TEST, compress_level=0, format="PNG")
 
         labels.append(1 if mock_dte_fdm_output() else 0)
 
@@ -70,7 +71,7 @@ def inference(img: np.ndarray) -> np.ndarray:
         except Exception as e:
             raise e
 
-        mask_batch[i] = np.array(Image.open(f"{MFLM_OUTPUT_PATH}/test.png").convert("RGB"))[:, :, :1].astype(im.dtype) / 255.0
+        mask_batch[i] = np.array(Image.open(f"{MFLM_OUTPUT_PATH}/test.png").convert("RGB"))[:, :, :1].astype(mask_dtype) / 255.0
 
     return mask_batch, labels
 
@@ -84,10 +85,10 @@ def predict(item: Item):
         return {"status": "error", "message": "Shared memory buffer not initialized by client yet."}
 
     # Create a numpy array view of the shared memory buffer
-    img_batch = np.ndarray(shape=item.shape, dtype=item.dtype, buffer=inputOutput_shm.buf)
+    img_batch = np.ndarray(shape=item.img_shape, dtype=item.img_dtype, buffer=inputOutput_shm.buf)
 
     try:
-        mask_batch, labels = inference(img_batch)
+        mask_batch, labels = inference(img_batch, item.mask_dtype)
         print(f"Processato image batch and output mask shape {mask_batch.shape}")
     except Exception as e:
         inputOutput_shm.close()
@@ -105,8 +106,6 @@ def predict(item: Item):
     del shm_slice_out
     inputOutput_shm.close()
 
-    # Il server risponde solo dopo aver terminato l'uso del tensor.
-    # Questo garantisce che il client non sovrascriva la memoria mentre il server sta leggendo.
     return {
         "shape": list(mask_batch.shape),
         "dtype": str(mask_batch.dtype),
