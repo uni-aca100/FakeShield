@@ -14,6 +14,7 @@ def startup_model():
         "model_path": "./weight/fakeshield-v1-22b/DTE-FDM",
         "DTG_path": "./weight/fakeshield-v1-22b/DTG.pth",
     })
+    print("= = = = = DTE-FDM model initialized successfully. = = = = =")
 
 @app.post("/dte-fdm/predict", status_code=200)
 def handle_dte_fdm_req(req: Request): 
