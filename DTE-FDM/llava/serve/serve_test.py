@@ -216,6 +216,9 @@ def DTE_FDM_predict(req: dict):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
         json.dump({"image": image_path, "outputs": outputs}, f)
+
+    # Clear GPU cache to free up memory after inference
+    torch.cuda.empty_cache()
     
     print("======== The detection result is saved to {} ========".format(output_path))
     return { "DTE_FDM_output_path": output_path }

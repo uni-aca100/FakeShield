@@ -243,8 +243,10 @@ def inference(input_str, all_inputs, follow_up, generate):
 
         markdown_out = process_markdown(output_str, color_history)
 
-        # return output_image, markdown_out
-        return seg_mask, output_str
+    # Clear GPU cache to free up memory after inference
+    torch.cuda.empty_cache()
+    # return output_image, markdown_out
+    return seg_mask, output_str
 
 
 def load_model(custom_args: dict):
