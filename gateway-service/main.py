@@ -54,6 +54,8 @@ def inference(img: np.ndarray, mask_dtype: str) -> np.ndarray:
     # collect the batch of masks from the MFLM service one by one, since the MFLM service is not designed to handle batches of images.
     mask_batch = np.zeros_like(img[..., 0:1])
     labels = []
+
+    ensure_dir_for_file(MFLM_OUTPUT_PATH + "/test.png")
     
     for i, im in enumerate(img):
         Image.fromarray(im.astype(np.uint8)).save(IMAGE_PATH_TO_TEST, compress_level=0, format="PNG")
