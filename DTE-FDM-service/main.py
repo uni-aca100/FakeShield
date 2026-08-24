@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from DTE_FDM.llava.serve.serve_test_dte_fdm import DTE_FDM_init, DTE_FDM_predict
+from DTE_FDM.llava.serve.serve_test import DTE_FDM_init, DTE_FDM_predict
 
 app = FastAPI()
 
