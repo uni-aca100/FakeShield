@@ -304,7 +304,7 @@ def predict(input_json):
         print("Generating mask...")
 
         output_image, markdown_out = inference(input_text, {'image': input_image, 'boxes': []}, False, False)
-        save_path = os.path.join(output_path, filename)
+        save_path = os.path.join(input_json["MFLM_output_path"], filename)
         output_image.save(save_path)
         print("======== Mask saved to: ", save_path, " ========\n")
         return {"pred_mask_path": save_path, "pred_label": 1}
