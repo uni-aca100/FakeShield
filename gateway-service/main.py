@@ -51,8 +51,9 @@ def mock_dte_fdm_output():
     the returned mask batch will be (N, H, W, 1) in the range [0, 1] as well.
 """
 def inference(img: np.ndarray, mask_dtype: str) -> np.ndarray:
+    target_dtype = np.dtype(mask_dtype)
     # collect the batch of masks from the MFLM service one by one, since the MFLM service is not designed to handle batches of images.
-    mask_batch = np.zeros_like(img[..., 0:1])
+    mask_batch = np.zeros((img.shape[0], img.shape[1], img.shape[2], 1), dtype=target_dtype)
     labels = []
 
     ensure_dir_for_file(MFLM_OUTPUT_PATH + "/test.png")
@@ -73,7 +74,8 @@ def inference(img: np.ndarray, mask_dtype: str) -> np.ndarray:
         except Exception as e:
             raise e
 
-        mask_batch[i] = np.array(Image.open(f"{MFLM_OUTPUT_PATH}/test.png").convert("RGB"))[:, :, :1].astype(mask_dtype) / 255.0
+        mask = np.array(Image.open(f"{MFLM_OUTPUT_PATH}/test.png").convert("RGB")[:, :, :1], dtype=target_dtype) / 255.0
+        mask_batch[i] = mask
 
     return mask_batch, labels
 
