@@ -74,8 +74,7 @@ def inference(img: np.ndarray, mask_dtype: str) -> np.ndarray:
         except Exception as e:
             raise e
 
-        mask = np.array(Image.open(f"{MFLM_OUTPUT_PATH}/test.png").convert("RGB")[:, :, :1], dtype=target_dtype) / 255.0
-        mask_batch[i] = mask
+        mask_batch[i] = np.asarray(Image.open(f"{MFLM_OUTPUT_PATH}/test.png").convert("RGB"))[:, :, :1].astype(target_dtype) / 255.0
 
     return mask_batch, labels
 
