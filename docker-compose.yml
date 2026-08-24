@@ -11,7 +11,7 @@ services:
     volumes:
       - .:/workspace/fakeshield
     environment:
-      - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/DTE-FDM
+      - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/DTE_FDM
     deploy:
       resources:
         reservations:

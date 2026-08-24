@@ -9,7 +9,7 @@ from PIL import Image
 
 IMAGE_PATH_TO_TEST = "./playground/images/test.png"
 MFLM_SERVICE = "http://mflm-api:8002/mflm/predict" # docker-compose service name and port
-DTE_FDM_SERVICE = "http://dte-fdm-api:8001/dte-fdm/predict"
+DTE_FDM_SERVICE = "http://dte-fdm-api:8001/dte_fdm/predict"
 MFLM_OUTPUT_PATH = "./playground/MFLM_output"
 DTE_FDM_OUTPUT_PATH = "./playground/DTE-FDM_output.jsonl"
 

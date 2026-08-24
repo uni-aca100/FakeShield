@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from llava.serve.serve_test_dte_fdm import DTE_FDM_init, DTE_FDM_predict
+from DTE_FDM.llava.serve.serve_test_dte_fdm import DTE_FDM_init, DTE_FDM_predict
 
 app = FastAPI()
 
@@ -16,7 +16,7 @@ def startup_model():
     })
     print("= = = = = DTE-FDM model initialized successfully. = = = = =")
 
-@app.post("/dte-fdm/predict", status_code=200)
+@app.post("/dte_fdm/predict", status_code=200)
 def handle_dte_fdm_req(req: Request): 
     try:
         return DTE_FDM_predict(req.model_dump())
