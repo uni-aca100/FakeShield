@@ -1,35 +1,17 @@
 version: '3.8'
 
 services:
-  # dte-fdm-api:
-  #   build:
-  #     context: ./DTE-FDM-service
-  #     dockerfile: Dockerfile
-  #   container_name: dte_fdm_server
-  #   ports:
-  #     - "8001:8001"
-  #   volumes:
-  #     - .:/workspace/fakeshield
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: all
-  #             capabilities: [ gpu ]
-  #   command: uvicorn DTE-FDM-serve.main:app --host 0.0.0.0 --port 8001 --reload
-
-  mflm-api:
+  dte-fdm-api:
     build:
-      context: ./MFLM-service
+      context: ./DTE-FDM-service
       dockerfile: Dockerfile
-    container_name: mflm_server
+    container_name: dte_fdm_server
     ports:
-      - "8002:8002"
+      - "8001:8001"
     volumes:
       - .:/workspace/fakeshield
     environment:
-      - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/MFLM
+      - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/DTE-FDM
     deploy:
       resources:
         reservations:
@@ -37,7 +19,27 @@ services:
             - driver: nvidia
               count: all
               capabilities: [ gpu ]
-    command: uvicorn MFLM-service.main:app --host 0.0.0.0 --port 8002 --reload
+    command: uvicorn DTE-FDM-serve.main:app --host 0.0.0.0 --port 8001 --reload
+
+  # mflm-api:
+  #   build:
+  #     context: ./MFLM-service
+  #     dockerfile: Dockerfile
+  #   container_name: mflm_server
+  #   ports:
+  #     - "8002:8002"
+  #   volumes:
+  #     - .:/workspace/fakeshield
+  #   environment:
+  #     - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/MFLM
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [ gpu ]
+  #   command: uvicorn MFLM-service.main:app --host 0.0.0.0 --port 8002 --reload
 
   gateway-service:
     build:
@@ -52,7 +54,7 @@ services:
     ipc: host
     command: uvicorn gateway-service.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      mflm-api:
-        condition: service_started
-      # dte-fdm-api:
+      # mflm-api:
       #   condition: service_started
+      dte-fdm-api:
+        condition: service_started

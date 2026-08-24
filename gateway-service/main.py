@@ -44,16 +44,61 @@ def mock_dte_fdm_output():
     print(f"✅ File mock creato con successo: {DTE_FDM_OUTPUT_PATH}")
     return True # indicate if the image has been tampered with or not
 
+def mock_mflm_output(img: np.ndarray, mask_dtype: np.dtype):
+    shape = (img.shape[1], img.shape[2], 1)  # (H, W, 1) shape for the mask
+    # Crea un'immagine di maschera mock (ad esempio, un'immagine nera)
+    mask = np.zeros(shape, dtype=mask_dtype)
+
+    #read the DTE-FDM output to determine if the image has been tampered with
+    with open(DTE_FDM_OUTPUT_PATH, "r", encoding="utf-8") as f:
+        dte_fdm_output = json.loads(f.readline().strip())
+        outputs = dte_fdm_output.get("outputs", "")
+        if "has been tampered with" in outputs:
+            # If the image has been tampered with, create a white mask
+            mask[:, :, 0] = 1.0  # Set all pixels to white (1.0)
+            label = 1  # Indicate that the image has been tampered with
+        else:
+            label = 0  # Indicate that the image has not been tampered with
+
+    return mask, label
+
+"""Call the MFLM service to get the mask for a single image."""
+def mflm_inference(mask_dtype: np.dtype):
+    try:
+        response = requests.post(MFLM_SERVICE, json={
+            "image_path": IMAGE_PATH_TO_TEST,
+            "DTE_FDM_output_path": DTE_FDM_OUTPUT_PATH,
+            "MFLM_output_path": MFLM_OUTPUT_PATH
+        }, headers = {"Content-Type": "application/json"}, timeout=30)
+        if response.status_code != 200:
+            raise Exception(f"Failed to get response from MFLM service: {response.text}")
+    except Exception as e:
+        raise e
+
+    label = response.json().get("pred_label", 0)  # default to 0 if not present
+    mask = np.asarray(Image.open(f"{MFLM_OUTPUT_PATH}/test.png").convert("RGB"))[:, :, :1].astype(mask_dtype) / 255.0
+
+    return mask, label
+
+def inference_DTE_FDM():
+    try:
+        response = requests.post(DTE_FDM_SERVICE, json={
+            "image_path": IMAGE_PATH_TO_TEST,
+            "output_path": DTE_FDM_OUTPUT_PATH
+        }, headers = {"Content-Type": "application/json"}, timeout=30)
+        if response.status_code != 200:
+            raise Exception(f"Failed to get response from DTE-FDM service: {response.text}")
+    except Exception as e:
+        raise e
 
 """
     input batch (N, H, W, C), where N is the batch size.
     Every image in the batch is expected to be in the range [0, 255] saved as a PNG file.
     the returned mask batch will be (N, H, W, 1) in the range [0, 1] as well.
 """
-def inference(img: np.ndarray, mask_dtype: str) -> np.ndarray:
-    target_dtype = np.dtype(mask_dtype)
+def inference(img: np.ndarray, mask_dtype: np.dtype):
     # collect the batch of masks from the MFLM service one by one, since the MFLM service is not designed to handle batches of images.
-    mask_batch = np.zeros((img.shape[0], img.shape[1], img.shape[2], 1), dtype=target_dtype)
+    mask_batch = np.zeros((img.shape[0], img.shape[1], img.shape[2], 1), dtype=mask_dtype)
     labels = []
 
     ensure_dir_for_file(MFLM_OUTPUT_PATH + "/test.png")
@@ -61,20 +106,11 @@ def inference(img: np.ndarray, mask_dtype: str) -> np.ndarray:
     for i, im in enumerate(img):
         Image.fromarray(im.astype(np.uint8)).save(IMAGE_PATH_TO_TEST, compress_level=0, format="PNG")
 
-        labels.append(1 if mock_dte_fdm_output() else 0)
-
-        try:
-            response = requests.post(MFLM_SERVICE, json={
-                "image_path": IMAGE_PATH_TO_TEST,
-                "DTE_FDM_output_path": DTE_FDM_OUTPUT_PATH,
-                "MFLM_output_path": MFLM_OUTPUT_PATH
-            }, headers = {"Content-Type": "application/json"}, timeout=30)
-            if response.status_code != 200:
-                raise Exception(f"Failed to get response from MFLM service: {response.text}")
-        except Exception as e:
-            raise e
-
-        mask_batch[i] = np.asarray(Image.open(f"{MFLM_OUTPUT_PATH}/test.png").convert("RGB"))[:, :, :1].astype(target_dtype) / 255.0
+        inference_DTE_FDM()
+        # mask, label = mflm_inference(mask_dtype), 
+        mask, label = mock_mflm_output(im, mask_dtype)
+        mask_batch[i] = mask
+        labels.append(label)
 
     return mask_batch, labels
 
@@ -91,7 +127,7 @@ def predict(item: Item):
     img_batch = np.ndarray(shape=item.img_shape, dtype=item.img_dtype, buffer=inputOutput_shm.buf)
 
     try:
-        mask_batch, labels = inference(img_batch, item.mask_dtype)
+        mask_batch, labels = inference(img_batch, np.dtype(item.mask_dtype))
         print(f"Processato image batch and output mask shape {mask_batch.shape}")
     except Exception as e:
         inputOutput_shm.close()
