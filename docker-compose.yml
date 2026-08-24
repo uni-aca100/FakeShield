@@ -19,7 +19,9 @@ services:
             - driver: nvidia
               count: all
               capabilities: [ gpu ]
-    command: uvicorn DTE-FDM-service.main:app --host 0.0.0.0 --port 8001 --reload
+    command: >
+      sh -c "ln -sfn ../DTE-FDM DTE_FDM && 
+             uvicorn DTE-FDM-service.main:app --host 0.0.0.0 --port 8001 --reload"
 
   # mflm-api:
   #   build:
