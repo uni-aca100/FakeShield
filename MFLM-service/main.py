@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from MFLM.serve_test import load_model, predict
+import os
 
 app = FastAPI()
 
@@ -11,10 +12,13 @@ class MFLMRequest(BaseModel):
 
 @app.on_event("startup")
 def startup_model():
-    load_model({
-        "version": "./weight/fakeshield-v1-22b/MFLM",
-    })
-    print("= = = = = MFLM model initialized successfully. = = = = =")
+    if os.environ.get("LOAD_MODEL_ON_STARTUP", "True") == "True":
+        print("= = = = = Loading MFLM model... = = = = =")
+        load_model({
+            "version": "./weight/fakeshield-v1-22b/MFLM",
+        })
+        print("= = = = = MFLM model initialized successfully. = = = = =")
+    print("= = = = = MFLM startup phase completed. = = = = =")
 
 @app.post("/mflm/predict", status_code=200)
 def handle_mdlm_req(req: MFLMRequest): 
