@@ -107,8 +107,8 @@ def inference(img: np.ndarray, mask_dtype: np.dtype):
         Image.fromarray(im.astype(np.uint8)).save(IMAGE_PATH_TO_TEST, compress_level=0, format="PNG")
 
         inference_DTE_FDM()
-        # mask, label = mflm_inference(mask_dtype), 
-        mask, label = mock_mflm_output(im, mask_dtype)
+        mask, label = mflm_inference(mask_dtype)
+        #mask, label = mock_mflm_output(im, mask_dtype)
         mask_batch[i] = mask
         labels.append(label)
 
