@@ -20,7 +20,7 @@ services:
             - driver: nvidia
               count: all
               capabilities: [ gpu ]
-    command: /opt/conda/bin/conda run --no-capture-output -n py311 uvicorn DTE-FDM-service.main:app --host 0.0.0.0 --port 8001 --reload
+    command: uvicorn DTE-FDM-service.main:app --host 0.0.0.0 --port 8001 --reload
 
   mflm-api:
     build:
