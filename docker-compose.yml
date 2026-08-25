@@ -21,25 +21,25 @@ services:
               capabilities: [ gpu ]
     command: uvicorn DTE-FDM-service.main:app --host 0.0.0.0 --port 8001 --reload
 
-  # mflm-api:
-  #   build:
-  #     context: ./MFLM-service
-  #     dockerfile: Dockerfile
-  #   container_name: mflm_server
-  #   ports:
-  #     - "8002:8002"
-  #   volumes:
-  #     - .:/workspace/fakeshield
-  #   environment:
-  #     - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/MFLM
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: all
-  #             capabilities: [ gpu ]
-  #   command: uvicorn MFLM-service.main:app --host 0.0.0.0 --port 8002 --reload
+  mflm-api:
+    build:
+      context: ./MFLM-service
+      dockerfile: Dockerfile
+    container_name: mflm_server
+    ports:
+      - "8002:8002"
+    volumes:
+      - .:/workspace/fakeshield
+    environment:
+      - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/MFLM
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    command: uvicorn MFLM-service.main:app --host 0.0.0.0 --port 8002 --reload
 
   gateway-service:
     build:
