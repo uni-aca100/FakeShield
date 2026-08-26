@@ -28,10 +28,10 @@ RUN python -m pip install --upgrade pip setuptools wheel
 
 
 # Install the modern CUDA 12.8 PyTorch stack required for Blackwell (sm_120)
-# Install flash-attn in the same layer as torch so it can find build dependencies
+# Install flash-attn with --no-build-isolation so it can find torch and other dependencies
 RUN python -m pip install torch torchvision torchaudio --no-cache-dir && \
     python -m pip install -r requirements.txt && \
-    python -m pip install flash-attn --no-cache-dir
+    python -m pip install flash-attn --no-build-isolation --no-cache-dir
 
 
 EXPOSE 8001
