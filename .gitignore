@@ -4,3 +4,7 @@ weight/*
 playground/MFLM_output/*
 
 .env
+
+.venv/
+venv/
+ENV/
