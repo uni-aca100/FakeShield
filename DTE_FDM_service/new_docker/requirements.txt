@@ -1,52 +1,43 @@
-# Blackwell / CUDA 12.8 baseline
-# Keep these versions aligned with PyTorch 2.6.0
+fastapi
+uvicorn
+starlette
+pydantic
+pydantic-core
+requests
+httpx
+httpcore
+aiohttp
+aiofiles
+aiosignal
+anyio
+h11
+websockets
+python-multipart
 
-fastapi>=0.115.0
-uvicorn[standard]>=0.30.1
-python-multipart>=0.0.6
-numpy>=2.1.2
-pillow>=11.0.0
-requests>=2.32.2
-httpx>=0.27.2
-anyio>=4.6.0
-click>=8.1.7
-jinja2>=3.1.2
-pyyaml>=6.0.2
-tokenizers>=0.15.0
-transformers>=4.38.0
-peft>=0.13.2
-pydantic>=2.9.2
-tqdm>=4.66.1
-regex>=2024.5.15
-huggingface-hub>=0.26.2
-sentencepiece>=0.2.0
-safetensors>=0.4.5
-accelerate>=1.0.1
-diffusers>=0.31.0
-opencv-python>=4.10.0.84
-scipy>=1.14.1
-scikit-learn>=1.5.1
-scikit-image>=0.24.0
-pandas>=2.2.3
-matplotlib>=3.9.2
-aiofiles>=24.1.0
-aiohttp>=3.11.0
-fsspec>=2024.8.0
-filelock>=3.17.0
-tifffile>=2024.8.0
-psutil>=6.0.1
-wheel>=0.45.0
-setuptools>=75.1.0
-
-# additional dependencies
+pandas
+scipy
+scikit-learn
+scikit-image
+opencv-python
+pillow
+imageio
+networkx
+tqdm
+click
+pyyaml
+orjson
 packaging
-ninja
+jinja2
+markupsafe
+joblib
+psutil
+absl-py
+addict
 
-
-# Keep these if the model stack needs them
-# flash-attn>=2.7.4.post1
-# deepspeed>=0.15.4
-# xformers>=0.0.28
-
-deepspeed>=0.14.0
-nvidia-ml-py>=12.535.133
+gradio
+gradio-client
+matplotlib
+contourpy
+cycler
+fonttools
+kiwisolver
