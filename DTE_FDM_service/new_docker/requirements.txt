@@ -41,3 +41,13 @@ contourpy
 cycler
 fonttools
 kiwisolver
+
+
+transformers
+accelerate
+peft
+diffusers
+safetensors
+einops
+sentencepiece
+huggingface-hub

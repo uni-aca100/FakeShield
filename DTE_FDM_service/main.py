@@ -2,12 +2,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from DTE_FDM.llava.serve.serve_test import DTE_FDM_init, DTE_FDM_predict
 import os
-import torch
 
 app = FastAPI()
 
 class Request(BaseModel):
-    image_path: str = "./playground/image/Sp_D_CRN_A_ani0043_ani0041_0373.jpg"
+    image_path: str = "./playground/images/Sp_D_CNN_A_ani0053_ani0054_0267.jpg"
     output_path: str = "./playground/DTE-FDM_output.jsonl"
 
 @app.on_event("startup")
