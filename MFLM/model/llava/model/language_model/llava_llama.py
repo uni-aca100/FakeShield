@@ -66,6 +66,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         images: Optional[torch.FloatTensor] = None,
         bboxes: Optional[List[torch.FloatTensor]] = None,
         return_dict: Optional[bool] = None,
+        cache_position: Optional[torch.LongTensor] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         output_attentions = (
             output_attentions
@@ -101,6 +102,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
+            cache_position=cache_position,
         )
 
         hidden_states = outputs[0]
@@ -144,6 +146,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         inputs_embeds=None,
         images=None,
         bboxes=None,
+        cache_position=None,
         **kwargs
     ):
         if past_key_values:
@@ -161,7 +164,8 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
                 "use_cache": kwargs.get("use_cache"),
                 "attention_mask": attention_mask,
                 "images": images,
-                "bboxes" : bboxes
+                "bboxes" : bboxes,
+                "cache_position": cache_position,
             }
         )
         return model_inputs
