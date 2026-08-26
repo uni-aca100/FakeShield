@@ -12,7 +12,7 @@ class Request(BaseModel):
 
 @app.on_event("startup")
 def startup_model():
-    if os.environ.get("LOAD_MODEL_ON_STARTUP", "True") == "True":
+    if os.environ.get("LOAD_DTE_FDM_ON_STARTUP", "True") == "True":
         print("= = = = = Loading DTE-FDM model... = = = = =")
         DTE_FDM_init({
             "model_path": "./weight/fakeshield-v1-22b/DTE-FDM",
