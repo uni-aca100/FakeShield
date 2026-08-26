@@ -12,7 +12,7 @@ class MFLMRequest(BaseModel):
 
 @app.on_event("startup")
 def startup_model():
-    if os.environ.get("LOAD_MODEL_ON_STARTUP", "True") == "True":
+    if os.environ.get("LOAD_MFLM_ON_STARTUP", "True") == "True":
         print("= = = = = Loading MFLM model... = = = = =")
         load_model({
             "version": "./weight/fakeshield-v1-22b/MFLM",

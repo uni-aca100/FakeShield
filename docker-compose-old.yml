@@ -12,7 +12,6 @@ services:
       - .:/workspace/fakeshield
     environment:
       - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/DTE_FDM
-      - LOAD_MODEL_ON_STARTUP=false
     deploy:
       resources:
         reservations:
@@ -33,7 +32,6 @@ services:
       - .:/workspace/fakeshield
     environment:
       - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/MFLM
-      - LOAD_MODEL_ON_STARTUP=false
     deploy:
       resources:
         reservations:
