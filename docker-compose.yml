@@ -32,8 +32,9 @@ services:
       - .:/workspace/fakeshield
     environment:
       - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/MFLM
-      - ulimit memlock=-1
-      - ulimit stack=67108864
+    ulimits:
+      memlock: -1
+      stack: 67108864
     deploy:
       resources:
         reservations:
