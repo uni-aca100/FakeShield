@@ -1,4 +1,4 @@
-FROM u2470277607/vllm:26.01-py3-mmcv-blackwell-12.0
+FROM u2470277607/vllm:25.12-py3-mmcv-blackwell-12.0
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
