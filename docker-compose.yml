@@ -23,7 +23,7 @@ services:
 
   mflm-api:
     build:
-      context: ./MFLM-service
+      context: ./MFLM_service
       dockerfile: Dockerfile
     container_name: mflm_server
     ports:
@@ -39,7 +39,7 @@ services:
             - driver: nvidia
               count: all
               capabilities: [ gpu ]
-    command: uvicorn MFLM-service.main:app --host 0.0.0.0 --port 8002 --reload
+    command: uvicorn MFLM_service.main:app --host 0.0.0.0 --port 8002 --reload
 
   gateway-service:
     build:
