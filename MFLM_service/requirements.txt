@@ -53,3 +53,5 @@ sentencepiece
 huggingface-hub
 
 mmengine
+# MMCV Version: 2.2.0 (compiled manually on backwell 12.0+PTX)
+# FROM u2470277607/nvcr.io-nvidia-vllm:26.01-py3-mmcv-12.0-PTX-v1.0
