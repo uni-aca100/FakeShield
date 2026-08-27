@@ -1,4 +1,4 @@
-FROM u2470277607/nvcr.io-nvidia-vllm:26.01-py3-mmcv-12.0-PTX-v1.0
+FROM u2470277607/vllm:26.01-py3-mmcv-blackwell-12.0
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
