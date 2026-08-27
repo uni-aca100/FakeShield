@@ -53,4 +53,3 @@ sentencepiece
 huggingface-hub
 
 mmengine
-mmcv>=2.1.0
