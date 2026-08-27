@@ -1,13 +1,15 @@
-FROM zhipeixu/dte-fdm:v1.0
+FROM nvcr.io/nvidia/vllm:26.01-py3
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    PYTHONUNBUFFERED=1 \
-    PATH="/opt/conda/bin:${PATH}"
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
 WORKDIR /workspace/fakeshield
 
-COPY requirements.txt .
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt ./
+RUN python -m pip install -r requirements.txt --no-cache-dir
+
 
 EXPOSE 8001
 
