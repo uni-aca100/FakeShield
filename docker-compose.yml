@@ -12,6 +12,9 @@ services:
       - .:/workspace/fakeshield
     environment:
       - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/DTE_FDM
+      - DTE_FDM_LOAD_8BIT=${DTE_FDM_LOAD_8BIT}
+      - DTE_FDM_LOAD_4BIT=${DTE_FDM_LOAD_4BIT}
+      - LOAD_MODEL_ON_STARTUP=${LOAD_DTE_FDM_ON_STARTUP}
     deploy:
       resources:
         reservations:
@@ -32,6 +35,7 @@ services:
       - .:/workspace/fakeshield
     environment:
       - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/MFLM
+      - LOAD_MODEL_ON_STARTUP=${LOAD_MFLM_ON_STARTUP}
     deploy:
       resources:
         reservations:
