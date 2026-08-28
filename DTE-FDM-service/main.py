@@ -39,7 +39,7 @@ IMAGE_PATH_TO_TEST = Path("./playground/images/test.png")
     input: a png image 
     output json: { "text_output": str }
 """
-@app.get("/dte_fdm/remote/predict", status_code=200)
+@app.post("/dte_fdm/remote/predict", status_code=200)
 def handle_dte_fdm_remote_req(file: UploadFile = File(...)):
     try:
         with open(IMAGE_PATH_TO_TEST, "wb") as f:
