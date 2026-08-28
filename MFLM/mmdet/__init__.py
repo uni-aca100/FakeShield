@@ -6,6 +6,7 @@ from .version import __version__, short_version
 import sys
 import types
 
+# =============================================================================
 # handle retrocompatibility MMCV 2.x / MMEngine -> MMCV 1.x
 try:
     import mmcv.runner
@@ -33,6 +34,33 @@ except ImportError:
             "Cannot find either 'mmcv.runner' (MMCV 1.x) or 'mmengine' (MMCV 2.x). "
             "Make sure MMEngine is installed in the environment."
         ) from e
+
+try:
+    import mmcv.cnn as mmcv_cnn
+    
+    # if MODELS are missing in mmcv.cnn (we are on MMCV 2.x), inject the registries from MMEngine
+    if not hasattr(mmcv_cnn, 'MODELS'):
+        import mmengine.registry as mmengine_registry
+
+        # Inject the main Registry
+        mmcv_cnn.MODELS = mmengine_registry.MODELS
+        
+        # Safe mapping of the layer registries
+        for reg_name in ['CONV_LAYERS', 'NORM_LAYERS', 'ACT_LAYERS', 'PADDING_LAYERS', 'UPSAMPLE_LAYERS']:
+            if not hasattr(mmcv_cnn, reg_name):
+                val = getattr(mmengine_registry, reg_name, getattr(mmcv_cnn, reg_name.lower(), None))
+                if val is not None:
+                    setattr(mmcv_cnn, reg_name, val)
+                    
+        # Ensure the global update in sys.modules
+        sys.modules['mmcv.cnn'] = mmcv_cnn
+
+except ImportError as e:
+    raise ImportError(
+        "Failed to restore the Registries in 'mmcv.cnn'. Make sure 'mmcv' and 'mmengine' are installed."
+    ) from e
+
+# =============================================================================
 
 def digit_version(version_str):
     digit_version = []
