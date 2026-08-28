@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from DTE_FDM.llava.serve.serve_test import DTE_FDM_init, DTE_FDM_predict
 import os
 from pathlib import Path
+import torch
 
 app = FastAPI()
 
