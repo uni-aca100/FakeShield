@@ -3,6 +3,36 @@ import mmcv
 
 from .version import __version__, short_version
 
+import sys
+import types
+
+# handle retrocompatibility MMCV 2.x / MMEngine -> MMCV 1.x
+try:
+    import mmcv.runner
+except ImportError:
+    try:
+        import mmengine.model as mmengine_model
+        import mmengine.runner as mmengine_runner
+
+        # dummy virtual module called 'mmcv.runner'
+        compat_runner = types.ModuleType('mmcv.runner')
+
+        # Copy attributes from both mmengine.model and mmengine.runner
+        compat_runner.__dict__.update(mmengine_model.__dict__)
+        compat_runner.__dict__.update(mmengine_runner.__dict__)
+
+        # Inject the unified module
+        sys.modules['mmcv.runner'] = compat_runner
+
+        # 'mmcv.runner' is accessible directly from the mmcv object
+        if 'mmcv' in sys.modules:
+            sys.modules['mmcv'].runner = compat_runner
+
+    except ImportError as e:
+        raise ImportError(
+            "Cannot find either 'mmcv.runner' (MMCV 1.x) or 'mmengine' (MMCV 2.x). "
+            "Make sure MMEngine is installed in the environment."
+        ) from e
 
 def digit_version(version_str):
     digit_version = []
