@@ -44,10 +44,6 @@ def init_args(custom_args: dict):
     return default_args
 
 
-def read_jsonl(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
-        return json.loads(f.readline().strip()) 
-
 def setup_tokenizer_and_special_tokens(args):
     """ Load tokenizer and add special tokens. """
     tokenizer = AutoTokenizer.from_pretrained(
@@ -268,24 +264,25 @@ def predict(input_json):
     API interface for MFLM FakeShield module.
         input_json:
             {
-                "DTE_FDM_output_path": str,  # path to the DTE-FDM output JSONL file
+                "text_output": str,  # the text output from the DTE-FDM model
+                "image_path": str,  # the path to the input image file
                 "MFLM_output_path": str      # path to save the predicted mask image
             }
         Returns:
             {
                 "pred_mask_path": str,  # path to the predicted mask image
                 "pred_label": int, 0 for untampered, 1 for tampered
+                "mask": Image,  # the predicted mask image
             }
     """
 
     if model is None:
         raise Exception("the model isn't loaded") 
     
-    DTE_FDM_output = read_jsonl(input_json["DTE_FDM_output_path"])
-    input_image = DTE_FDM_output.get("image", "")
-    input_text = DTE_FDM_output.get("outputs", "")
+    image_path = input_json.get("image_path", "")
+    input_text = input_json.get("text_output", "")
 
-    filename = os.path.basename(input_image)
+    filename = os.path.basename(image_path)
     output_path = os.path.dirname(input_json["MFLM_output_path"])
     os.makedirs(output_path, exist_ok=True)
 
@@ -293,18 +290,18 @@ def predict(input_json):
         print("The image has not been tampered with.")
         
         # creare a black mask with the same size as the input image
-        img = Image.open(input_image)
+        img = Image.open(image_path)
         black_mask = Image.fromarray(np.zeros((img.height, img.width), dtype=np.uint8))
         save_path = os.path.join(output_path, filename)
         print("======== Black mask saved to: ", save_path, " ========\n")
         black_mask.save(save_path)
-        return {"pred_mask_path": save_path, "pred_label": 0}
+        return {"pred_mask_path": save_path, "pred_label": 0, "mask": black_mask}
     else:
         print("The image has been tampered with.")
         print("Generating mask...")
 
-        output_image, markdown_out = inference(input_text, {'image': input_image, 'boxes': []}, False, False)
+        output_image, markdown_out = inference(input_text, {'image': image_path, 'boxes': []}, False, False)
         save_path = os.path.join(input_json["MFLM_output_path"], filename)
         output_image.save(save_path)
         print("======== Mask saved to: ", save_path, " ========\n")
-        return {"pred_mask_path": save_path, "pred_label": 1}
+        return {"pred_mask_path": save_path, "pred_label": 1, "mask": output_image}

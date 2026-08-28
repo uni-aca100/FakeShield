@@ -82,7 +82,7 @@ def load_image(image_file):
     return image
 
 def _init_args(custom_args: dict):
-    """ Initialize the arguments for the MFLM model. """
+    """ Initialize the arguments for the DTE-FDM model. """
     class DefaultArgs:
         pass
 
