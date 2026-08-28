@@ -61,7 +61,7 @@ def handle_remote_mdlm_req(text_output: Annotated[str, Form(...)] = "", img: Upl
         buff.seek(0)
 
         headers = {
-            "X-pred_label": res["pred_label"],
+            "X-pred_label": str(res["pred_label"]),
         }
 
         # debug:
