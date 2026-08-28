@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from DTE_FDM.llava.serve.serve_test import DTE_FDM_init, DTE_FDM_predict
 import os
 from pathlib import Path
-import torch
 
 app = FastAPI()
 
@@ -18,6 +17,8 @@ def startup_model():
         DTE_FDM_init({
             "model_path": "./weight/fakeshield-v1-22b/DTE-FDM",
             "DTG_path": "./weight/fakeshield-v1-22b/DTG.pth",
+            "load_8bit": True if os.environ.get("DTE_FDM_LOAD_8BIT", "False") == "True" else False,
+            "load_4bit": True if os.environ.get("DTE_FDM_LOAD_4BIT", "False") == "True" else False
         })
         print("= = = = = DTE-FDM model initialized successfully. = = = = =")
     print("= = = = = DTE-FDM startup phase completed. = = = = =")
