@@ -221,4 +221,4 @@ def DTE_FDM_predict(req: dict):
     torch.cuda.empty_cache()
     
     print("======== The detection result is saved to {} ========".format(output_path))
-    return { "DTE_FDM_output_path": output_path }
+    return { "DTE_FDM_output_path": output_path, "text_output": outputs }
