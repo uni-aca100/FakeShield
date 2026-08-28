@@ -5,8 +5,15 @@ from MFLM.serve_test import load_model, predict
 from typing import Annotated
 import os
 import io
+import PIL as Image
 
 app = FastAPI()
+
+def save_mask(mask, MFLM_output_path, img_path):
+    os.makedirs(MFLM_output_path, exist_ok=True)
+    filename = os.path.basename(img_path)
+    save_path = os.path.join(MFLM_output_path, filename)
+    mask.save(save_path, format="PNG")
 
 class MFLMRequest(BaseModel):
     image_path: str
@@ -28,7 +35,9 @@ def startup_model():
 @app.post("/mflm/predict", status_code=200)
 def handle_mdlm_req(req: MFLMRequest): 
     try:
-        return predict(req.model_dump())
+        res = predict(req.model_dump())
+        save_mask(res["mask"], req["MFLM_output_path"], req["image_path"])
+        return res
     except Exception as e:
         print(str(e))
         raise HTTPException(status_code=500, detail=str(e))
@@ -48,13 +57,15 @@ def handle_remote_mdlm_req(text_output: Annotated[str, Form(...)] = "", img: Upl
 
         res = predict(req)
         buff = io.BytesIO()
-        buff.write(res.mask)
+        res["mask"].save(buff, format="PNG")
         buff.seek(0)
 
         headers = {
-            "X-pred_label": res.pred_label,
-            "X-pred_mask_path": res.pred_mask_path
+            "X-pred_label": res["pred_label"],
         }
+
+        # debug:
+        save_mask(res["mask"], req["MFLM_output_path"], req["image_path"])
 
         return StreamingResponse(buff, media_type="image/png", headers=headers)
 

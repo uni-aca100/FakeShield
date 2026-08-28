@@ -266,7 +266,6 @@ def predict(input_json):
             {
                 "text_output": str,  # the text output from the DTE-FDM model
                 "image_path": str,  # the path to the input image file
-                "MFLM_output_path": str      # path to save the predicted mask image
             }
         Returns:
             {
@@ -282,26 +281,16 @@ def predict(input_json):
     image_path = input_json.get("image_path", "")
     input_text = input_json.get("text_output", "")
 
-    filename = os.path.basename(image_path)
-    output_path = os.path.dirname(input_json["MFLM_output_path"])
-    os.makedirs(output_path, exist_ok=True)
-
     if "has not been tampered with" in input_text:
-        print("The image has not been tampered with.")
+        print("= = = = = > The image has not been tampered with.")
         
         # creare a black mask with the same size as the input image
         img = Image.open(image_path)
         black_mask = Image.fromarray(np.zeros((img.height, img.width), dtype=np.uint8))
-        save_path = os.path.join(output_path, filename)
-        print("======== Black mask saved to: ", save_path, " ========\n")
-        black_mask.save(save_path)
-        return {"pred_mask_path": save_path, "pred_label": 0, "mask": black_mask}
+        return {"pred_label": 0, "mask": black_mask}
     else:
-        print("The image has been tampered with.")
+        print("= = = = = > The image has been tampered with.")
         print("Generating mask...")
 
         output_image, markdown_out = inference(input_text, {'image': image_path, 'boxes': []}, False, False)
-        save_path = os.path.join(input_json["MFLM_output_path"], filename)
-        output_image.save(save_path)
-        print("======== Mask saved to: ", save_path, " ========\n")
-        return {"pred_mask_path": save_path, "pred_label": 1, "mask": output_image}
+        return {"pred_label": 1, "mask": output_image}
