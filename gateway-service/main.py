@@ -7,8 +7,11 @@ import numpy as np
 from PIL import Image
 import io
 
-MFLM_SERVICE = os.environ.get("MFLM_SERVICE", "http://mflm-api:8002/mflm/predict") # docker-compose service name and port
-DTE_FDM_SERVICE = os.environ.get("DTE_FDM_SERVICE", "http://dte-fdm-api:8001/dte_fdm/predict")
+
+
+
+MFLM_SERVICE = (os.environ.get("MFLM_SERVICE") or "").strip() or "http://mflm-api:8002/mflm/predict" # docker-compose service name and port
+DTE_FDM_SERVICE = (os.environ.get("DTE_FDM_SERVICE") or "").strip() or "http://dte-fdm-api:8001/dte_fdm/predict"
 # MFLM_OUTPUT_PATH = "./playground/MFLM_output"
 DEBUG_FLAG = os.environ.get("DEBUG_FLAG", "False").lower() in ("true", "1", "True", "TRUE")
 
