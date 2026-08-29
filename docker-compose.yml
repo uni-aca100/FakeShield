@@ -3,13 +3,13 @@ version: '3.8'
 services:
   dte-fdm-api:
     build:
-      context: ./DTE-FDM-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: DTE-FDM-service/Dockerfile
     container_name: dte_fdm_server
     ports:
       - "8001:8001"
     volumes:
-      - .:/workspace/fakeshield
+      - ./weight:/workspace/fakeshield/weight
     environment:
       - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/DTE_FDM
       - DTE_FDM_LOAD_8BIT=${DTE_FDM_LOAD_8BIT}
@@ -26,7 +26,7 @@ services:
             - driver: nvidia
               count: all
               capabilities: [ gpu ]
-    command: uvicorn DTE-FDM-service.main:app --host 0.0.0.0 --port 8001 --reload
+    command: uvicorn DTE-FDM-service.main:app --host 0.0.0.0 --port 8001
 
   mflm-api:
     build:
