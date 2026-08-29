@@ -47,7 +47,7 @@ def handle_remote_mdlm_req(text_output: Annotated[str, Form(...)] = "", img: Upl
         res["mask"].save(buff, format="PNG")
         buff.seek(0)
 
-        headers = { "X-pred_label": str(res["pred_label"]) }
+        headers = { "x-pred-label": str(res["pred_label"]) }
         return StreamingResponse(buff, media_type="image/png", headers=headers)
 
     except Exception as e:

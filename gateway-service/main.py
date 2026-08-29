@@ -42,12 +42,12 @@ def mflm_inference(mask_dtype: np.dtype, image_bytes: io.BytesIO, dte_fdm_output
         if response.status_code != 200:
             raise Exception(f"Failed to get response from MFLM service: {response.text}")
 
-        x_pred_label = response.headers.get("X-pred_label")
+        x_pred_label = response.headers.get("x-pred-label")
 
         if not x_pred_label:
-            raise Exception("Missing X-pred_label header in response from MFLM service.")
+            raise Exception("Missing x-pred-label header in response from MFLM service.")
         elif x_pred_label not in ["0", "1"]:
-            raise Exception(f"Invalid X-pred_label header value: {x_pred_label}")
+            raise Exception(f"Invalid x-pred-label header value: {x_pred_label}")
 
         label = int(x_pred_label)
         mask_bytes = io.BytesIO(response.content)
@@ -69,13 +69,17 @@ def inference_DTE_FDM(image_bytes: io.BytesIO):
         }, timeout=150)
         if response.status_code != 200:
             raise Exception(f"Failed to get response from DTE-FDM service: {response.text}")
+
         output = response.json().get("text_output", "")
         if output == "":
             raise Exception("Missing text_output in response from DTE-FDM service.")
-        return output
+
+        label = 0 if "has not been tampered with" in output else 1
+        return output, label
 
     except Exception as e:
         raise e
+
 
 """
     input batch (N, H, W, C), where N is the batch size.
@@ -96,9 +100,15 @@ def inference(img: np.ndarray, mask_dtype: np.dtype):
         test_image.save(image_bytes, format="PNG", compress_level=0)
         image_bytes.seek(0)
 
-        dte_fdm_output = inference_DTE_FDM(image_bytes)
-        image_bytes.seek(0)
-        mask, label = mflm_inference(mask_dtype, image_bytes, dte_fdm_output)
+        dte_fdm_output, dte_fdm_label = inference_DTE_FDM(image_bytes)
+
+        if dte_fdm_label == 0:
+            # If DTE-FDM predicts the image has not been tampered with, we can skip MFLM inference and use a black mask.
+            mask = np.zeros((img.shape[1], img.shape[2], 1), dtype=mask_dtype)
+            label = 0
+        else:
+            image_bytes.seek(0)
+            mask, label = mflm_inference(mask_dtype, image_bytes, dte_fdm_output)
 
         mask_batch[i] = mask
         labels.append(label)
