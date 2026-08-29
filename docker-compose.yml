@@ -16,6 +16,9 @@ services:
       - DTE_FDM_LOAD_4BIT=${DTE_FDM_LOAD_4BIT}
       - LOAD_MODEL_ON_STARTUP=${LOAD_DTE_FDM_ON_STARTUP}
       - DEBUG_FLAG=${DEBUG_FLAG}
+      - MODEL_PATH=${MODEL_PATH}
+      - DTG_PATH=${DTG_PATH}
+      - TIMEOUT_DTE_FDM=${TIMEOUT_DTE_FDM}
     deploy:
       resources:
         reservations:

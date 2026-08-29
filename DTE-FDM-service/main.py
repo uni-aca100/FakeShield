@@ -6,6 +6,9 @@ from PIL import Image
 LOAD_MODEL_ON_STARTUP = os.environ.get("LOAD_MODEL_ON_STARTUP", "True").lower() in ("true", "1", "True", "TRUE", "")
 DTE_FDM_LOAD_8BIT = os.environ.get("DTE_FDM_LOAD_8BIT", "False").lower() in ("true", "1", "True", "TRUE")
 DTE_FDM_LOAD_4BIT = os.environ.get("DTE_FDM_LOAD_4BIT", "False").lower() in ("true", "1", "True", "TRUE")
+MODEL_PATH = (os.environ.get("MODEL_PATH") or "").strip() or "./weight/fakeshield-v1-22b/DTE-FDM"
+DTG_PATH = (os.environ.get("DTG_PATH") or "").strip() or "./weight/fakeshield-v1-22b/DTG.pth"
+
 
 app = FastAPI()
 
@@ -16,14 +19,17 @@ def startup_model():
     if LOAD_MODEL_ON_STARTUP:
         print("= = = = = Loading DTE-FDM model... = = = = =")
         DTE_FDM_init({
-            "model_path": "./weight/fakeshield-v1-22b/DTE-FDM",
-            "DTG_path": "./weight/fakeshield-v1-22b/DTG.pth",
+            "model_path": MODEL_PATH,
+            "DTG_path": DTG_PATH,
             "load_8bit": DTE_FDM_LOAD_8BIT,
             "load_4bit": DTE_FDM_LOAD_4BIT
         })
         print("= = = = = DTE-FDM model initialized successfully. = = = = =")
     print("= = = = = DTE-FDM startup phase completed. = = = = =")
 
+@app.get("/health", status_code=200)
+def health_check():
+    return {"status": "ok"}
 
 """
     input: a png image 

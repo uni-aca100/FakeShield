@@ -8,18 +8,12 @@ from PIL import Image
 import io
 
 
-
-
 MFLM_SERVICE = (os.environ.get("MFLM_SERVICE") or "").strip() or "http://mflm-api:8002/mflm/predict" # docker-compose service name and port
 DTE_FDM_SERVICE = (os.environ.get("DTE_FDM_SERVICE") or "").strip() or "http://dte-fdm-api:8001/dte_fdm/predict"
 # MFLM_OUTPUT_PATH = "./playground/MFLM_output"
 DEBUG_FLAG = os.environ.get("DEBUG_FLAG", "False").lower() in ("true", "1", "True", "TRUE")
+TIMEOUT_DTE_FDM = int((os.environ.get("TIMEOUT_DTE_FDM") or "").strip() or "150")
 
-
-def ensure_dir_for_file(path: str):
-    parent = os.path.dirname(path)
-    if parent:
-        os.makedirs(parent, exist_ok=True)
 
 app = FastAPI()
 
@@ -66,7 +60,7 @@ def inference_DTE_FDM(image_bytes: io.BytesIO):
     try:
         response = requests.post(DTE_FDM_SERVICE, files={
             "file": ("test.png", image_bytes, "image/png")
-        }, timeout=150)
+        }, timeout=TIMEOUT_DTE_FDM)
         if response.status_code != 200:
             raise Exception(f"Failed to get response from DTE-FDM service: {response.text}")
 
