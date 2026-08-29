@@ -1,24 +1,15 @@
 from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from MFLM.serve_test import load_model, predict
 from typing import Annotated
 import os
 import io
-import PIL as Image
+import numpy as np
+import cv2
+
+DEBUG_FLAG = os.environ.get("DEBUG_FLAG", "False").lower() in ("true", "1", "True", "TRUE")
 
 app = FastAPI()
-
-def save_mask(mask, MFLM_output_path, img_path):
-    os.makedirs(MFLM_output_path, exist_ok=True)
-    filename = os.path.basename(img_path)
-    save_path = os.path.join(MFLM_output_path, filename)
-    mask.save(save_path, format="PNG")
-
-class MFLMRequest(BaseModel):
-    image_path: str
-    text_output: str = "the image has not been tampered with."
-    MFLM_output_path: str = "./playground/MFLM_output"
 
 @app.on_event("startup")
 def startup_model():
@@ -32,41 +23,31 @@ def startup_model():
         print("= = = = = MFLM model initialized successfully. = = = = =")
     print("= = = = = MFLM startup phase completed. = = = = =")
 
+
 @app.post("/mflm/predict", status_code=200)
-def handle_mdlm_req(req: MFLMRequest): 
-    try:
-        res = predict(req.model_dump())
-        save_mask(res["mask"], req["MFLM_output_path"], req["image_path"])
-        return res
-    except Exception as e:
-        print(str(e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/mflm/remote/predict", status_code=200)
 def handle_remote_mdlm_req(text_output: Annotated[str, Form(...)] = "", img: UploadFile = File(...)):
     try:
+        np_array = np.frombuffer(img.file.read(), np.uint8)
+        image_np = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
         req = {
-            "image_path": f"/tmp/{img.filename}",
             "text_output": text_output,
-            "MFLM_output_path": "./playground/MFLM_output"
+            "image": image_np,
         }
 
-        with open(req["image_path"], "wb") as f:
-            f.write(img.file.read())
+        if image_np is None:
+            raise HTTPException(status_code=400, detail="The uploaded file is not a valid image.")
+
+
+        if DEBUG_FLAG:
+            cv2.imwrite(f"/tmp/{img.filename}_mdlm.png", image_np)
 
         res = predict(req)
         buff = io.BytesIO()
+        # it's convient to respond with a losslessly compressed mask
         res["mask"].save(buff, format="PNG")
         buff.seek(0)
 
-        headers = {
-            "X-pred_label": str(res["pred_label"]),
-        }
-
-        # debug:
-        save_mask(res["mask"], req["MFLM_output_path"], req["image_path"])
-
+        headers = { "X-pred_label": str(res["pred_label"]) }
         return StreamingResponse(buff, media_type="image/png", headers=headers)
 
     except Exception as e:

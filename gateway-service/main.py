@@ -3,15 +3,14 @@ from pydantic import BaseModel
 from multiprocessing import shared_memory
 import os
 import requests
-import json
 import numpy as np
 from PIL import Image
+import io
 
-IMAGE_PATH_TO_TEST = "./playground/images/test.png"
-MFLM_SERVICE = "http://mflm-api:8002/mflm/predict" # docker-compose service name and port
-DTE_FDM_SERVICE = "http://dte-fdm-api:8001/dte_fdm/predict"
-MFLM_OUTPUT_PATH = "./playground/MFLM_output"
-DTE_FDM_OUTPUT_PATH = "./playground/DTE-FDM_output.jsonl"
+MFLM_SERVICE = os.environ.get("MFLM_SERVICE", "http://mflm-api:8002/mflm/predict") # docker-compose service name and port
+DTE_FDM_SERVICE = os.environ.get("DTE_FDM_SERVICE", "http://dte-fdm-api:8001/dte_fdm/predict")
+# MFLM_OUTPUT_PATH = "./playground/MFLM_output"
+DEBUG_FLAG = os.environ.get("DEBUG_FLAG", "False").lower() in ("true", "1", "True", "TRUE")
 
 
 def ensure_dir_for_file(path: str):
@@ -27,67 +26,41 @@ class Item(BaseModel):
     img_dtype: str
     mask_dtype: str
 
-def mock_dte_fdm_output():
-    # Crea i dati per il file mock del DTE-FDM
-    # IMPORTANTE: Evitiamo la frase "has not been tampered with" per forzare l'esecuzione dell'MFLM
-    mock_dte_data = {
-        "image": IMAGE_PATH_TO_TEST,
-        "outputs": "The image has been tampered with. There is a spliced object in the foreground with inconsistent illumination and shadow artifacts."
-    }
-
-    ensure_dir_for_file(DTE_FDM_OUTPUT_PATH)
-
-    # writhe file .jsonl
-    with open(DTE_FDM_OUTPUT_PATH, "w", encoding="utf-8") as f:
-        f.write(json.dumps(mock_dte_data) + "\n")
-
-    print(f"✅ File mock creato con successo: {DTE_FDM_OUTPUT_PATH}")
-    return True # indicate if the image has been tampered with or not
-
-def mock_mflm_output(img: np.ndarray, mask_dtype: np.dtype):
-    shape = (img.shape[1], img.shape[2], 1)  # (H, W, 1) shape for the mask
-    # Crea un'immagine di maschera mock (ad esempio, un'immagine nera)
-    mask = np.zeros(shape, dtype=mask_dtype)
-
-    #read the DTE-FDM output to determine if the image has been tampered with
-    with open(DTE_FDM_OUTPUT_PATH, "r", encoding="utf-8") as f:
-        dte_fdm_output = json.loads(f.readline().strip())
-        outputs = dte_fdm_output.get("outputs", "")
-        if "has been tampered with" in outputs:
-            # If the image has been tampered with, create a white mask
-            mask[:, :, 0] = 1.0  # Set all pixels to white (1.0)
-            label = 1  # Indicate that the image has been tampered with
-        else:
-            label = 0  # Indicate that the image has not been tampered with
-
-    return mask, label
 
 """Call the MFLM service to get the mask for a single image."""
-def mflm_inference(mask_dtype: np.dtype):
+def mflm_inference(mask_dtype: np.dtype, image_bytes: io.BytesIO, dte_fdm_output: str):
     try:
-        response = requests.post(MFLM_SERVICE, json={
-            "image_path": IMAGE_PATH_TO_TEST,
-            "DTE_FDM_output_path": DTE_FDM_OUTPUT_PATH,
-            "MFLM_output_path": MFLM_OUTPUT_PATH
-        }, headers = {"Content-Type": "application/json"}, timeout=30)
+        response = requests.post(MFLM_SERVICE, files={
+            "img": ("test.png", image_bytes, "image/png")
+        },
+        data={ "text_output": dte_fdm_output },
+        headers = {"Content-Type": "multipart/form-data"},
+        timeout=120)
+
         if response.status_code != 200:
             raise Exception(f"Failed to get response from MFLM service: {response.text}")
+
+        label = 1 if response.headers.get("X-pred_label") == "1" else 0  # default to 0 if not present
+        mask_bytes = io.BytesIO(response.content)
+
+        if mask_bytes.getbuffer().nbytes == 0:
+            raise Exception("Received empty mask from MFLM service.")
+
+        mask = np.asarray(Image.open(mask_bytes).convert("RGB"))[:, :, :1].astype(mask_dtype) / 255.0
+        
     except Exception as e:
         raise e
 
-    label = response.json().get("pred_label", 0)  # default to 0 if not present
-    mask = np.asarray(Image.open(f"{MFLM_OUTPUT_PATH}/test.png").convert("RGB"))[:, :, :1].astype(mask_dtype) / 255.0
-
     return mask, label
 
-def inference_DTE_FDM():
+def inference_DTE_FDM(image_bytes: io.BytesIO):
     try:
-        response = requests.post(DTE_FDM_SERVICE, json={
-            "image_path": IMAGE_PATH_TO_TEST,
-            "output_path": DTE_FDM_OUTPUT_PATH
-        }, headers = {"Content-Type": "application/json"}, timeout=30)
+        response = requests.post(DTE_FDM_SERVICE, files={
+            "file": ("test.png", image_bytes, "image/png")
+        }, headers = {"Content-Type": "multipart/form-data"}, timeout=150)
         if response.status_code != 200:
             raise Exception(f"Failed to get response from DTE-FDM service: {response.text}")
+        return response.json().get("text_output", "")
     except Exception as e:
         raise e
 
@@ -101,16 +74,25 @@ def inference(img: np.ndarray, mask_dtype: np.dtype):
     mask_batch = np.zeros((img.shape[0], img.shape[1], img.shape[2], 1), dtype=mask_dtype)
     labels = []
 
-    ensure_dir_for_file(MFLM_OUTPUT_PATH + "/test.png")
-    
     for i, im in enumerate(img):
-        Image.fromarray(im.astype(np.uint8)).save(IMAGE_PATH_TO_TEST, compress_level=0, format="PNG")
+        test_image = Image.fromarray(im.astype(np.uint8))
+        if DEBUG_FLAG:
+            test_image.save(f"/tmp/test_img_{i}.png", compress_level=0, format="PNG")  # debug check
 
-        inference_DTE_FDM()
-        mask, label = mflm_inference(mask_dtype)
-        #mask, label = mock_mflm_output(im, mask_dtype)
+        image_bytes = io.BytesIO()
+        test_image.save(image_bytes, format="PNG", compress_level=0)
+        image_bytes.seek(0)
+
+        dte_fdm_output = inference_DTE_FDM(image_bytes)
+        image_bytes.seek(0)
+        mask, label = mflm_inference(mask_dtype, image_bytes, dte_fdm_output)
+
         mask_batch[i] = mask
         labels.append(label)
+
+        if DEBUG_FLAG:
+            Image.fromarray((mask * 255).astype(np.uint8)).save(f"/tmp/test_mask_{i}.png", compress_level=0, format="PNG")
+            print(f"label for image {i}: {label}")
 
     return mask_batch, labels
 

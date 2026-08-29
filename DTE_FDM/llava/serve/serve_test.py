@@ -1,4 +1,3 @@
-import os
 import torch
 
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
@@ -53,17 +52,17 @@ class DomainTagGenerator:
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
 
-    def predict(self, image_path):
+    def predict(self, img: Image.Image):
         """
         Classification prediction of single images.
 
         parameter:
-        - image_path (str): The path to the image file.
+        - img (PIL.Image.Image): The image to be classified.
 
         return:
         - int: predicted category tags.
         """
-        image = Image.open(image_path).convert('RGB')
+        image = img.copy()
         image = self.transform(image).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
@@ -73,13 +72,6 @@ class DomainTagGenerator:
 
         return label
 
-def load_image(image_file):
-    if image_file.startswith('http://') or image_file.startswith('https://'):
-        response = requests.get(image_file)
-        image = Image.open(BytesIO(response.content)).convert('RGB')
-    else:
-        image = Image.open(image_file).convert('RGB')
-    return image
 
 def _init_args(custom_args: dict):
     """ Initialize the arguments for the DTE-FDM model. """
@@ -137,7 +129,7 @@ def DTE_FDM_init(custom_args: dict):
     print("======== DTE_FDM Model Loaded ========")
 
 
-def DTE_FDM_predict(req: dict):
+def DTE_FDM_predict(image: Image.Image):
     global tokenizer, model, image_processor, context_len, DTG, model_name, args
 
     if model is None:
@@ -149,9 +141,7 @@ def DTE_FDM_predict(req: dict):
     else:
         roles = conv.roles
 
-    image_path = req["image_path"]
-    image = load_image(image_path)
-    label = DTG.predict(image_path)
+    label = DTG.predict(image)
     print("======== DTE_FDM predict ========")
 
     image_size = image.size
@@ -212,13 +202,14 @@ def DTE_FDM_predict(req: dict):
 
     outputs = outputs.replace("<s>","").replace("</s>","")
 
+    """ respond to the request by saving the output to a file
     output_path = req["output_path"]
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
         json.dump({"image": image_path, "outputs": outputs}, f)
+    """
 
     # Clear GPU cache to free up memory after inference
     torch.cuda.empty_cache()
     
-    print("======== The detection result is saved to {} ========".format(output_path))
-    return { "DTE_FDM_output_path": output_path, "text_output": outputs }
+    return { "text_output": outputs }

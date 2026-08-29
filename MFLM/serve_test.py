@@ -124,7 +124,7 @@ def region_enc_processor(orig_size, post_size, bbox_img):
     return bboxes
 
 
-def prepare_mask(input_image, image_np, pred_masks, text_output, color_history):
+def prepare_mask(image_np, pred_masks, text_output, color_history):
     save_img = None
     for i, pred_mask in enumerate(pred_masks):
         if pred_mask.shape[0] == 0:
@@ -150,8 +150,6 @@ def prepare_mask(input_image, image_np, pred_masks, text_output, color_history):
     seg_mask[curr_mask] = [255, 255, 255]  # white for True values
     seg_mask[~curr_mask] = [0, 0, 0]  # black for False values
     seg_mask = Image.fromarray(seg_mask)
-    mask_path = input_image.replace('image', 'mask')
-    # seg_mask.save('mask.jpg')
 
     return save_img, seg_mask
 
@@ -160,7 +158,7 @@ def inference(input_str, all_inputs, follow_up, generate):
     # inference_mode to avoid memory leak
     with torch.inference_mode():
         bbox_img = all_inputs['boxes']
-        input_image = all_inputs['image']
+        image_np = all_inputs['image']
 
         if not follow_up:
             conv = conversation_lib.conv_templates[args.conv_type].copy()
@@ -183,8 +181,6 @@ def inference(input_str, all_inputs, follow_up, generate):
             conv.append_message(conv.roles[1], "")
         prompt = conv.get_prompt()
 
-        image_np = cv2.imread(input_image)
-        image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
         orig_h, orig_w = image_np.shape[:2]
         original_size_list = [image_np.shape[:2]]
 
@@ -226,7 +222,7 @@ def inference(input_str, all_inputs, follow_up, generate):
         color_history = []
         save_img = None
         if "[SEG]" in text_output:
-            save_img, seg_mask = prepare_mask(input_image, image_np, pred_masks, text_output, color_history)
+            save_img, seg_mask = prepare_mask(image_np, pred_masks, text_output, color_history)
 
         output_str = text_output  # input_str
         if save_img is not None:
@@ -235,7 +231,8 @@ def inference(input_str, all_inputs, follow_up, generate):
             if len(bbox_img) > 0:
                 output_image = draw_bbox(image_np.copy(), bbox_img)
             else:
-                output_image = input_image
+                # output_image = input_image
+                pass
 
         markdown_out = process_markdown(output_str, color_history)
 
@@ -269,7 +266,6 @@ def predict(input_json):
             }
         Returns:
             {
-                "pred_mask_path": str,  # path to the predicted mask image
                 "pred_label": int, 0 for untampered, 1 for tampered
                 "mask": Image,  # the predicted mask image
             }
@@ -278,19 +274,18 @@ def predict(input_json):
     if model is None:
         raise Exception("the model isn't loaded") 
     
-    image_path = input_json.get("image_path", "")
+    image = input_json.get("image", None)
     input_text = input_json.get("text_output", "")
 
     if "has not been tampered with" in input_text:
         print("= = = = = > The image has not been tampered with.")
         
         # creare a black mask with the same size as the input image
-        img = Image.open(image_path)
-        black_mask = Image.fromarray(np.zeros((img.height, img.width), dtype=np.uint8))
+        black_mask = Image.fromarray(np.zeros((image.height, image.width), dtype=np.uint8))
         return {"pred_label": 0, "mask": black_mask}
     else:
         print("= = = = = > The image has been tampered with.")
         print("Generating mask...")
 
-        output_image, markdown_out = inference(input_text, {'image': image_path, 'boxes': []}, False, False)
+        output_image, markdown_out = inference(input_text, {'image': image, 'boxes': []}, False, False)
         return {"pred_label": 1, "mask": output_image}
