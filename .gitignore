@@ -9,3 +9,5 @@ venv/
 .venv/
 
 gateway-service/mock.py
+
+__pycache__/
