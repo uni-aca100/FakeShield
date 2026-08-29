@@ -34,13 +34,19 @@ def mflm_inference(mask_dtype: np.dtype, image_bytes: io.BytesIO, dte_fdm_output
             "img": ("test.png", image_bytes, "image/png")
         },
         data={ "text_output": dte_fdm_output },
-        headers = {"Content-Type": "multipart/form-data"},
         timeout=120)
 
         if response.status_code != 200:
             raise Exception(f"Failed to get response from MFLM service: {response.text}")
 
-        label = 1 if response.headers.get("X-pred_label") == "1" else 0  # default to 0 if not present
+        x_pred_label = response.headers.get("X-pred_label")
+
+        if not x_pred_label:
+            raise Exception("Missing X-pred_label header in response from MFLM service.")
+        elif x_pred_label not in ["0", "1"]:
+            raise Exception(f"Invalid X-pred_label header value: {x_pred_label}")
+
+        label = int(x_pred_label)
         mask_bytes = io.BytesIO(response.content)
 
         if mask_bytes.getbuffer().nbytes == 0:
@@ -57,10 +63,14 @@ def inference_DTE_FDM(image_bytes: io.BytesIO):
     try:
         response = requests.post(DTE_FDM_SERVICE, files={
             "file": ("test.png", image_bytes, "image/png")
-        }, headers = {"Content-Type": "multipart/form-data"}, timeout=150)
+        }, timeout=150)
         if response.status_code != 200:
             raise Exception(f"Failed to get response from DTE-FDM service: {response.text}")
-        return response.json().get("text_output", "")
+        output = response.json().get("text_output", "")
+        if output == "":
+            raise Exception("Missing text_output in response from DTE-FDM service.")
+        return output
+
     except Exception as e:
         raise e
 

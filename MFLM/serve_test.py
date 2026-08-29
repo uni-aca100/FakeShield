@@ -281,7 +281,7 @@ def predict(input_json):
         print("= = = = = > The image has not been tampered with.")
         
         # creare a black mask with the same size as the input image
-        black_mask = Image.fromarray(np.zeros((image.height, image.width), dtype=np.uint8))
+        black_mask = Image.fromarray(np.zeros((image.shape[:2]), dtype=np.uint8))
         return {"pred_label": 0, "mask": black_mask}
     else:
         print("= = = = = > The image has been tampered with.")

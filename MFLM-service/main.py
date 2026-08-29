@@ -8,14 +8,14 @@ import numpy as np
 import cv2
 
 DEBUG_FLAG = os.environ.get("DEBUG_FLAG", "False").lower() in ("true", "1", "True", "TRUE")
+LOAD_MODEL_ON_STARTUP = os.environ.get("LOAD_MODEL_ON_STARTUP", "True").lower() in ("true", "1", "True", "TRUE", "")
+
 
 app = FastAPI()
 
 @app.on_event("startup")
 def startup_model():
-    load_model_flag = os.environ.get("LOAD_MODEL_ON_STARTUP", "True")
-
-    if load_model_flag == "True" or load_model_flag == "":
+    if LOAD_MODEL_ON_STARTUP:
         print("= = = = = Loading MFLM model... = = = = =")
         load_model({
             "version": "./weight/fakeshield-v1-22b/MFLM",

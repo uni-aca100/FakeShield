@@ -1,23 +1,25 @@
 from fastapi import FastAPI, HTTPException, File, UploadFile
 from DTE_FDM.llava.serve.serve_test import DTE_FDM_init, DTE_FDM_predict
 import os
-from pathlib import Path
 from PIL import Image
+
+LOAD_MODEL_ON_STARTUP = os.environ.get("LOAD_MODEL_ON_STARTUP", "True").lower() in ("true", "1", "True", "TRUE", "")
+DTE_FDM_LOAD_8BIT = os.environ.get("DTE_FDM_LOAD_8BIT", "False").lower() in ("true", "1", "True", "TRUE")
+DTE_FDM_LOAD_4BIT = os.environ.get("DTE_FDM_LOAD_4BIT", "False").lower() in ("true", "1", "True", "TRUE")
 
 app = FastAPI()
 
 
 @app.on_event("startup")
 def startup_model():
-    load_model_flag = os.environ.get("LOAD_MODEL_ON_STARTUP", "True")
     
-    if load_model_flag == "True" or load_model_flag == "":
+    if LOAD_MODEL_ON_STARTUP:
         print("= = = = = Loading DTE-FDM model... = = = = =")
         DTE_FDM_init({
             "model_path": "./weight/fakeshield-v1-22b/DTE-FDM",
             "DTG_path": "./weight/fakeshield-v1-22b/DTG.pth",
-            "load_8bit": True if os.environ.get("DTE_FDM_LOAD_8BIT", "False") == "True" else False,
-            "load_4bit": True if os.environ.get("DTE_FDM_LOAD_4BIT", "False") == "True" else False
+            "load_8bit": DTE_FDM_LOAD_8BIT,
+            "load_4bit": DTE_FDM_LOAD_4BIT
         })
         print("= = = = = DTE-FDM model initialized successfully. = = = = =")
     print("= = = = = DTE-FDM startup phase completed. = = = = =")
