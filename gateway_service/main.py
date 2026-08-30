@@ -6,6 +6,7 @@ import requests
 import numpy as np
 from PIL import Image
 import io
+from gateway_service.mock import mock_inference_DTE_FDM, mock_mflm_inference
 
 
 MFLM_SERVICE = (os.environ.get("MFLM_SERVICE") or "").strip() or "http://mflm-api:8002/mflm/predict" # docker-compose service name and port
@@ -86,7 +87,12 @@ def inference(img: np.ndarray, mask_dtype: np.dtype):
     labels = []
 
     for i, im in enumerate(img):
-        test_image = Image.fromarray(im.astype(np.uint8))
+        im = im.astype(np.uint8)
+        if im.ndim == 3 and im.shape[-1] == 1:
+            # Image.fromarray can't handle a (H, W, 1) array; treat it as grayscale and convert to RGB.
+            im = np.repeat(im, 3, axis=-1)
+
+        test_image = Image.fromarray(im)
         if DEBUG_FLAG:
             test_image.save(f"/tmp/test_img_{i}.png", compress_level=0, format="PNG")  # debug check
 
@@ -108,7 +114,7 @@ def inference(img: np.ndarray, mask_dtype: np.dtype):
         labels.append(label)
 
         if DEBUG_FLAG:
-            Image.fromarray((mask * 255).astype(np.uint8)).save(f"/tmp/test_mask_{i}.png", compress_level=0, format="PNG")
+            Image.fromarray((mask * 255).astype(np.uint8).squeeze(-1)).save(f"/tmp/test_mask_{i}.png", compress_level=0, format="PNG")
             print(f"label for image {i}: {label}")
 
     return mask_batch, labels
@@ -124,7 +130,7 @@ def predict(item: Item):
 
     # Create a numpy array view of the shared memory buffer
     img_batch = np.ndarray(shape=item.img_shape, dtype=item.img_dtype, buffer=inputOutput_shm.buf)
-
+    print(f"Received image batch with shape {img_batch.shape} and dtype {img_batch.dtype}")
     try:
         mask_batch, labels = inference(img_batch, np.dtype(item.mask_dtype))
         print(f"Processato image batch and output mask shape {mask_batch.shape}")
