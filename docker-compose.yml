@@ -9,7 +9,6 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      - ./DTE_FDM:/workspace
       - ./weight:/workspace/weight
     environment:
       - DTE_FDM_LOAD_8BIT=${DTE_FDM_LOAD_8BIT}
