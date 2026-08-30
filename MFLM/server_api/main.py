@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.responses import StreamingResponse
-from MFLM.serve_test import load_model, predict
+from serve_test import load_model, predict
 from typing import Annotated
 import os
 import io

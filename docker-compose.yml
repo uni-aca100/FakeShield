@@ -30,15 +30,15 @@ services:
 
   mflm-api:
     build:
-      context: ./MFLM-service
-      dockerfile: Dockerfile
+      context: ./MFLM
+      dockerfile: server_api/Dockerfile
     container_name: mflm_server
     ports:
       - "8002:8002"
     volumes:
-      - .:/workspace/fakeshield
+      - ./MFLM:/workspace
+      - ./weight:/workspace/weight
     environment:
-      - PYTHONPATH=/workspace/fakeshield:/workspace/fakeshield/MFLM
       - LOAD_MODEL_ON_STARTUP=${LOAD_MFLM_ON_STARTUP}
       - DEBUG_FLAG=${DEBUG_FLAG}
     deploy:
@@ -48,7 +48,7 @@ services:
             - driver: nvidia
               count: all
               capabilities: [ gpu ]
-    command: uvicorn MFLM-service.main:app --host 0.0.0.0 --port 8002 --reload
+    command: uvicorn server_api.main:app --host 0.0.0.0 --port 8002 --reload
 
   gateway-service:
     build:

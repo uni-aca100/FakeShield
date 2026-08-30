@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/conda/bin:${PATH}"
 
-WORKDIR /workspace/fakeshield
+WORKDIR /workspace
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential git libgl1-mesa-glx libglib2.0-0 \
@@ -17,9 +17,9 @@ RUN git clone https://github.com/open-mmlab/mmcv.git /tmp/mmcv && \
     MMCV_WITH_OPS=1 pip install --no-cache-dir . && \
     rm -rf /tmp/mmcv
 
-COPY requirements.txt .
+COPY server_api/requirements.txt .
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8002
 
-CMD ["uvicorn", "MFLM-service.main:app", "--host", "0.0.0.0", "--port", "8002", "--reload"]
+CMD ["uvicorn", "server_api.main:app", "--host", "0.0.0.0", "--port", "8002", "--reload"]
