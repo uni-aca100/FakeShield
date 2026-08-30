@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, File, UploadFile
-from DTE_FDM.llava.serve.serve_test import DTE_FDM_init, DTE_FDM_predict
+from llava.serve.serve_test import DTE_FDM_init, DTE_FDM_predict
 import os
 from PIL import Image
 
@@ -9,9 +9,7 @@ DTE_FDM_LOAD_4BIT = os.environ.get("DTE_FDM_LOAD_4BIT", "False").lower() in ("tr
 MODEL_PATH = (os.environ.get("MODEL_PATH") or "").strip() or "./weight/fakeshield-v1-22b/DTE-FDM"
 DTG_PATH = (os.environ.get("DTG_PATH") or "").strip() or "./weight/fakeshield-v1-22b/DTG.pth"
 
-
 app = FastAPI()
-
 
 @app.on_event("startup")
 def startup_model():

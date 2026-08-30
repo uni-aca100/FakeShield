@@ -5,3 +5,5 @@ docker-compose.yml
 README.md
 Dockerfile
 .gitignore
+
+weight/
