@@ -8,8 +8,8 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 
-COPY server_api/requirements.txt .
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+COPY . .
+RUN python3 -m pip install --no-cache-dir -r server_api/requirements.txt
 
 EXPOSE 8001
 

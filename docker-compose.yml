@@ -9,7 +9,6 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      - ./DTE_FDM:/workspace
       - ./weight:/workspace/weight
     environment:
       - DTE_FDM_LOAD_8BIT=${DTE_FDM_LOAD_8BIT}
@@ -51,18 +50,17 @@ services:
 
   gateway-service:
     build:
-      context: ./gateway-service
+      context: ./gateway_service
       dockerfile: Dockerfile
     container_name: gateway_service
     ports:
       - "8000:8000"
     volumes:
-      - ./gateway-service:/workspace/gateway-service
-      - ./playground:/workspace/playground
+      - ./gateway_service:/workspace/gateway_service
     environment:
       - MFLM_SERVICE=${MFLM_SERVICE}
       - DTE_FDM_SERVICE=${DTE_FDM_SERVICE}
       - DEBUG_FLAG=${DEBUG_FLAG}
       - TIMEOUT_DTE_FDM=${TIMEOUT_DTE_FDM}
     ipc: host
-    command: uvicorn gateway-service.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn gateway_service.main:app --host 0.0.0.0 --port 8000 --reload
