@@ -16,6 +16,7 @@ DTE_FDM_SERVICE = (os.environ.get("DTE_FDM_SERVICE") or "").strip() or "http://d
 DEBUG_FLAG = os.environ.get("DEBUG_FLAG", "False").lower() in ("true", "1", "True", "TRUE")
 TIMEOUT_DTE_FDM = int((os.environ.get("TIMEOUT_DTE_FDM") or "").strip() or "150")
 
+count = 0 # Counter for the number of inferences made for debugging purposes
 
 app = FastAPI()
 
@@ -75,6 +76,7 @@ def inference_DTE_FDM(image_bytes: io.BytesIO):
     the returned mask batch will be (N, H, W, 1) in the range [0, 1] as well.
 """
 def inference(img: np.ndarray, mask_dtype: np.dtype):
+    global count
     # collect the batch of masks from the MFLM service one by one, since the MFLM service is not designed to handle batches of images.
     mask_batch = np.zeros((img.shape[0], img.shape[1], img.shape[2], 1), dtype=mask_dtype)
     labels = []
@@ -87,7 +89,7 @@ def inference(img: np.ndarray, mask_dtype: np.dtype):
 
         test_image = Image.fromarray(im)
         if DEBUG_FLAG:
-            test_image.save(f"/tmp/test_img_{i}.png", compress_level=0, format="PNG")  # debug check
+            test_image.save(f"/tmp/test_img_{count}.png", compress_level=0, format="PNG")  # debug check
 
         image_bytes = io.BytesIO()
         test_image.save(image_bytes, format="PNG", compress_level=0)
@@ -108,7 +110,8 @@ def inference(img: np.ndarray, mask_dtype: np.dtype):
 
         if DEBUG_FLAG:
             Image.fromarray((mask * 255).astype(np.uint8).squeeze(-1)).save(f"/tmp/test_mask_{i}.png", compress_level=0, format="PNG")
-            print(f"label for image {i}: {label}")
+            print(f"label for image {count}: {label}")
+            count += 1
 
     return mask_batch, labels
 
