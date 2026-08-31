@@ -122,6 +122,7 @@ def predict(item: Item):
     try:
         inputOutput_shm = shared_memory.SharedMemory(name=item.shm_name)
     except FileNotFoundError:
+        print(f"Shared memory buffer with name {item.shm_name} not found.")
         raise HTTPException(status_code=404, detail="Shared memory buffer not initialized by client yet.")
 
     # Create a numpy array view of the shared memory buffer
@@ -132,11 +133,13 @@ def predict(item: Item):
         print(f"Processato image batch and output mask shape {mask_batch.shape}")
     except Exception as e:
         inputOutput_shm.close()
+        print(f"Error during inference: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
     
     if mask_batch.nbytes > inputOutput_shm.size:
         inputOutput_shm.close()
+        print(f"Output mask size {mask_batch.nbytes} exceeds shared memory size {inputOutput_shm.size}")
         raise HTTPException(status_code=500, detail="Output mask size exceeds shared memory size.")
 
     # Create a numpy array view of the shared memory buffer for the output mask and copy the output mask to it
