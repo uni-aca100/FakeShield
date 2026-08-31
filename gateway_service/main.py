@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from multiprocessing import shared_memory
 import os
@@ -27,53 +28,45 @@ class Item(BaseModel):
 
 """Call the MFLM service to get the mask for a single image."""
 def mflm_inference(mask_dtype: np.dtype, image_bytes: io.BytesIO, dte_fdm_output: str):
-    try:
-        response = requests.post(MFLM_SERVICE, files={
-            "img": ("test.png", image_bytes, "image/png")
-        },
-        data={ "text_output": dte_fdm_output },
-        timeout=120)
+    response = requests.post(MFLM_SERVICE, files={
+        "img": ("test.png", image_bytes, "image/png")
+    },
+    data={ "text_output": dte_fdm_output },
+    timeout=120)
 
-        if response.status_code != 200:
-            raise Exception(f"Failed to get response from MFLM service: {response.text}")
+    if response.status_code != 200:
+        raise Exception(f"Failed to get response from MFLM service: {response.text}")
 
-        x_pred_label = response.headers.get("x-pred-label")
+    x_pred_label = response.headers.get("x-pred-label")
 
-        if not x_pred_label:
-            raise Exception("Missing x-pred-label header in response from MFLM service.")
-        elif x_pred_label not in ["0", "1"]:
-            raise Exception(f"Invalid x-pred-label header value: {x_pred_label}")
+    if not x_pred_label:
+        raise Exception("Missing x-pred-label header in response from MFLM service.")
+    elif x_pred_label not in ["0", "1"]:
+        raise Exception(f"Invalid x-pred-label header value: {x_pred_label}")
 
-        label = int(x_pred_label)
-        mask_bytes = io.BytesIO(response.content)
+    label = int(x_pred_label)
+    mask_bytes = io.BytesIO(response.content)
 
-        if mask_bytes.getbuffer().nbytes == 0:
-            raise Exception("Received empty mask from MFLM service.")
+    if mask_bytes.getbuffer().nbytes == 0:
+        raise Exception("Received empty mask from MFLM service.")
 
-        mask = np.asarray(Image.open(mask_bytes).convert("RGB"))[:, :, :1].astype(mask_dtype) / 255.0
-        
-    except Exception as e:
-        raise e
-
+    mask = np.asarray(Image.open(mask_bytes).convert("RGB"))[:, :, :1].astype(mask_dtype) / 255.0
     return mask, label
 
 def inference_DTE_FDM(image_bytes: io.BytesIO):
-    try:
-        response = requests.post(DTE_FDM_SERVICE, files={
-            "file": ("test.png", image_bytes, "image/png")
-        }, timeout=TIMEOUT_DTE_FDM)
-        if response.status_code != 200:
-            raise Exception(f"Failed to get response from DTE-FDM service: {response.text}")
+    response = requests.post(DTE_FDM_SERVICE, files={
+        "file": ("test.png", image_bytes, "image/png")
+    }, timeout=TIMEOUT_DTE_FDM)
+    if response.status_code != 200:
+        raise Exception(f"Failed to get response from DTE-FDM service: {response.text}")
 
-        output = response.json().get("text_output", "")
-        if output == "":
-            raise Exception("Missing text_output in response from DTE-FDM service.")
+    output = response.json().get("text_output", "")
+    if output == "":
+        raise Exception("Missing text_output in response from DTE-FDM service.")
 
-        label = 0 if "has not been tampered with" in output else 1
-        return output, label
+    label = 0 if "has not been tampered with" in output else 1
+    return output, label
 
-    except Exception as e:
-        raise e
 
 
 """
@@ -126,7 +119,7 @@ def predict(item: Item):
     try:
         inputOutput_shm = shared_memory.SharedMemory(name=item.shm_name)
     except FileNotFoundError:
-        return {"status": "error", "message": "Shared memory buffer not initialized by client yet."}
+        raise HTTPException(status_code=404, detail="Shared memory buffer not initialized by client yet.")
 
     # Create a numpy array view of the shared memory buffer
     img_batch = np.ndarray(shape=item.img_shape, dtype=item.img_dtype, buffer=inputOutput_shm.buf)
@@ -136,12 +129,12 @@ def predict(item: Item):
         print(f"Processato image batch and output mask shape {mask_batch.shape}")
     except Exception as e:
         inputOutput_shm.close()
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
     
     if mask_batch.nbytes > inputOutput_shm.size:
         inputOutput_shm.close()
-        return {"status": "error", "message": "Output mask size exceeds shared memory size."}
+        raise HTTPException(status_code=500, detail="Output mask size exceeds shared memory size.")
 
     # Create a numpy array view of the shared memory buffer for the output mask and copy the output mask to it
     shm_slice_out = np.ndarray(shape=mask_batch.shape, dtype=mask_batch.dtype, buffer=inputOutput_shm.buf)
