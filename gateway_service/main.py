@@ -109,7 +109,7 @@ def inference(img: np.ndarray, mask_dtype: np.dtype):
         labels.append(label)
 
         if DEBUG_FLAG:
-            Image.fromarray((mask * 255).astype(np.uint8).squeeze(-1)).save(f"/tmp/test_mask_{i}.png", compress_level=0, format="PNG")
+            Image.fromarray((mask * 255).astype(np.uint8).squeeze(-1)).save(f"/tmp/test_mask_{count}.png", compress_level=0, format="PNG")
             print(f"label for image {count}: {label}")
             count += 1
 
